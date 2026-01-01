@@ -14,7 +14,7 @@ document.getElementById("search").addEventListener("keydown",async e=>{
 
 async function carregar(){
   layer.clearLayers();
-  const r = await fetch("https://02a807a4-72cc-4c46-9dac-bfb691e7e2b2-00-28de9bmnlqo1q.picard.replit.dev/alertas");
+  const r = await fetch("https://radar-backend-1-yfkr.onrender.com/alertas");
   const dados = await r.json();
 
   dados.forEach(p=>{
@@ -73,7 +73,7 @@ async function atualizarQuadradosVento() {
     for (let lon = Math.floor(bounds.getWest()); lon < bounds.getEast(); lon += step) {
 
       try {
-        const r = await fetch(`https://02a807a4-72cc-4c46-9dac-bfb691e7e2b2-00-28de9bmnlqo1q.picard.replit.dev/wind?lat=${lat}&lon=${lon}`);
+        const r = await fetch(`https://radar-backend-1-yfkr.onrender.com/wind?lat=${lat}&lon=${lon}`);
         const d = await r.json();
 
         const rect = L.rectangle(
