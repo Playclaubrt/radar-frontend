@@ -4,43 +4,24 @@
 <meta charset="UTF-8">
 <title>Radar Global Oficial</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-
 <style>
 html,body,#map{height:100%;margin:0;background:#000;font-family:Arial}
 #map{z-index:1}
-
-#search{
-  position:absolute;top:10px;left:50%;
-  transform:translateX(-50%);
-  width:80%;padding:8px;border-radius:10px;border:none;z-index:2000
-}
-
-#info{
-  position:fixed;bottom:115px;left:10px;right:10px;
-  background:rgba(0,0,0,.85);color:#fff;
-  padding:10px;border-radius:12px;display:none;z-index:3000
-}
-
-#barraVento{
-  position:fixed;bottom:65px;left:5%;
-  width:90%;height:8px;border-radius:10px;
-  background:linear-gradient(to right,#0f0,#ff0,#f00);
-  z-index:2000
-}
-
-#timeline{
-  position:fixed;bottom:0;left:0;right:0;
-  height:55px;background:#000;border-top:3px solid #00ff88;
-  display:flex;justify-content:space-around;align-items:center;
-  color:#fff;z-index:2000
-}
+#search{position:absolute;top:10px;left:50%;transform:translateX(-50%);
+width:80%;padding:8px;border-radius:10px;border:none;z-index:2000}
+#info{position:fixed;bottom:115px;left:10px;right:10px;
+background:rgba(0,0,0,.85);color:#fff;padding:10px;border-radius:12px;
+display:none;z-index:3000}
+#barraVento{position:fixed;bottom:65px;left:5%;width:90%;height:8px;
+border-radius:10px;background:linear-gradient(to right,#0f0,#ff0,#f00);z-index:2000}
+#timeline{position:fixed;bottom:0;left:0;right:0;height:55px;
+background:#000;border-top:3px solid #00ff88;display:flex;
+justify-content:space-around;align-items:center;color:#fff;z-index:2000}
 </style>
 </head>
 
 <body>
-
 <input id="search" placeholder="Buscar local">
 <div id="map"></div>
 <div id="info"></div>
