@@ -2,69 +2,94 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar Windy</title>
+<title>Radar Global Oficial</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 
 <style>
-html,body,#map{height:100%;margin:0}
-#map{background:#000}
+html,body,#map{height:100%;margin:0;background:#000;font-family:Arial}
+#map{z-index:1}
 
+/* Busca estilo Windy */
 #search{
- position:absolute;top:10px;left:50%;
- transform:translateX(-50%);
- z-index:1000;
- background:#111;
- padding:6px;
- border-radius:8px
-}
-
-#search input{
- background:#000;
- color:#fff;
- border:none;
- padding:6px;
- width:220px
-}
-
-#windBar,#timeBar{
  position:absolute;
+ top:10px;
+ left:50%;
+ transform:translateX(-50%);
+ width:85%;
+ padding:10px;
+ border-radius:12px;
+ border:none;
+ z-index:3000;
+ font-size:16px;
+}
+
+/* Painel inferior */
+#info{
+ position:fixed;
  bottom:0;
  left:0;
  right:0;
- background:#111;
+ background:rgba(0,0,0,.92);
  color:#fff;
- padding:6px;
- z-index:1000;
- font-size:14px
+ max-height:45%;
+ padding:15px;
+ border-radius:18px 18px 0 0;
+ display:none;
+ z-index:4000;
+ overflow:auto;
 }
 
-#timeBar{bottom:42px}
-
-#info{
+#close{
  position:absolute;
- bottom:84px;
- left:0;right:0;
+ right:15px;
+ top:10px;
+ font-size:20px;
+ cursor:pointer;
+}
+
+/* Barra de vento */
+#barraVento{
+ position:fixed;
+ bottom:60px;
+ left:5%;
+ width:90%;
+ height:10px;
+ border-radius:10px;
+ background:linear-gradient(to right,
+ #e3f2fd,#90caf9,#42a5f5,#ffee58,#ffb300,#f4511e,#b71c1c);
+ z-index:2000;
+}
+
+/* Timeline */
+#timeline{
+ position:fixed;
+ bottom:0;
+ left:0;
+ right:0;
+ height:55px;
  background:#000;
+ border-top:3px solid #00ff88;
+ display:flex;
+ justify-content:space-around;
+ align-items:center;
  color:#fff;
- display:none;
- padding:10px;
- z-index:1000
+ z-index:2000;
 }
 </style>
 </head>
 
 <body>
 
-<div id="search">
-<input id="searchInput" placeholder="Buscar cidade...">
-</div>
-
+<input id="search" placeholder="Buscar local">
 <div id="map"></div>
 <div id="info"></div>
-<div id="timeBar">Timeline: Seg → Sex</div>
-<div id="windBar">Vento</div>
+<div id="barraVento"></div>
+
+<div id="timeline">
+ <span>-5d</span><span>-3d</span><b>HOJE</b><span>+3d</span><span>+5d</span>
+</div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="script.js"></script>
