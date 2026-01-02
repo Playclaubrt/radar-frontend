@@ -3,95 +3,135 @@
 <head>
 <meta charset="UTF-8">
 <title>Radar Global Oficial</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
 
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 
 <style>
-html,body,#map{height:100%;margin:0;background:#000;font-family:Arial}
-#map{z-index:1}
-
-/* Busca estilo Windy */
-#search{
- position:absolute;
- top:10px;
- left:50%;
- transform:translateX(-50%);
- width:85%;
- padding:10px;
- border-radius:12px;
- border:none;
- z-index:3000;
- font-size:16px;
+html, body {
+  height:100%;
+  margin:0;
+  background:#000;
+  font-family:Arial, Helvetica, sans-serif;
 }
 
-/* Painel inferior */
-#info{
- position:fixed;
- bottom:0;
- left:0;
- right:0;
- background:rgba(0,0,0,.92);
- color:#fff;
- max-height:45%;
- padding:15px;
- border-radius:18px 18px 0 0;
- display:none;
- z-index:4000;
- overflow:auto;
+/* MAPA */
+#map {
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:1;
 }
 
-#close{
- position:absolute;
- right:15px;
- top:10px;
- font-size:20px;
- cursor:pointer;
+/* BARRA DE PESQUISA (estilo Windy) */
+#search {
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:85%;
+  padding:10px;
+  border-radius:14px;
+  border:none;
+  outline:none;
+  z-index:3000;
+  font-size:16px;
 }
 
-/* Barra de vento */
-#barraVento{
- position:fixed;
- bottom:60px;
- left:5%;
- width:90%;
- height:10px;
- border-radius:10px;
- background:linear-gradient(to right,
- #e3f2fd,#90caf9,#42a5f5,#ffee58,#ffb300,#f4511e,#b71c1c);
- z-index:2000;
+/* PAINEL INFERIOR MOBILE */
+#info {
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  max-height:45%;
+  background:rgba(0,0,0,.92);
+  color:#fff;
+  padding:14px;
+  border-top-left-radius:18px;
+  border-top-right-radius:18px;
+  display:none;
+  z-index:4000;
+  overflow-y:auto;
 }
 
-/* Timeline */
-#timeline{
- position:fixed;
- bottom:0;
- left:0;
- right:0;
- height:55px;
- background:#000;
- border-top:3px solid #00ff88;
- display:flex;
- justify-content:space-around;
- align-items:center;
- color:#fff;
- z-index:2000;
+/* BOTÃO FECHAR */
+#close {
+  text-align:right;
+  font-size:20px;
+  cursor:pointer;
+  margin-bottom:5px;
+}
+
+/* BARRA DE VENTO (ESCALA) */
+#barraVento {
+  position:fixed;
+  bottom:65px;
+  left:5%;
+  width:90%;
+  height:8px;
+  border-radius:10px;
+  background:linear-gradient(
+    to right,
+    #ffffff,
+    #90caf9,
+    #42a5f5,
+    #ffee58,
+    #ff9800,
+    #f44336
+  );
+  z-index:3000;
+}
+
+/* TIMELINE */
+#timeline {
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  height:55px;
+  background:#000;
+  border-top:3px solid #00ff88;
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  color:#fff;
+  font-size:14px;
+  z-index:2500;
 }
 </style>
 </head>
 
 <body>
 
-<input id="search" placeholder="Buscar local">
+<!-- BUSCA -->
+<input id="search" placeholder="Buscar local (cidade, país, oceano...)">
+
+<!-- MAPA -->
 <div id="map"></div>
+
+<!-- PAINEL -->
 <div id="info"></div>
+
+<!-- ESCALA DE VENTO -->
 <div id="barraVento"></div>
 
+<!-- TIMELINE -->
 <div id="timeline">
- <span>-5d</span><span>-3d</span><b>HOJE</b><span>+3d</span><span>+5d</span>
+  <span>Seg</span>
+  <span>Ter</span>
+  <span>Qua</span>
+  <span>Qui</span>
+  <span>Sex</span>
 </div>
 
+<!-- JS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="script.js"></script>
+
 </body>
 </html>
