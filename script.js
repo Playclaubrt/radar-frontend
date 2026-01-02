@@ -5,97 +5,77 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
 const ventoLayer = L.layerGroup().addTo(map);
 const alertaLayer = L.layerGroup().addTo(map);
-
 const info = document.getElementById("info");
 
-// 🔍 Busca
-document.getElementById("search").addEventListener("keydown",async e=>{
- if(e.key==="Enter"){
-  const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${e.target.value}`);
-  const d = await r.json();
-  if(d[0]) map.setView([d[0].lat,d[0].lon],8);
- }
-});
-
-// ===== STEP POR ZOOM (ANTI-ALAGAMENTO)
-function stepPorZoom(z){
- if(z<=3) return 12;
- if(z<=4) return 8;
- if(z<=6) return 4;
- if(z<=8) return 2;
- return 1;
+// =====================
+// ESCALA DE VENTO
+// =====================
+function corVento(k){
+ if(k<1) return "transparent";
+ if(k<20) return "#90caf9";
+ if(k<40) return "#42a5f5";
+ if(k<60) return "#ffee58";
+ if(k<80) return "#ff9800";
+ return "#f44336";
 }
 
-// ===== ESCALA DE VENTO REAL (km/h)
-function corVento(kmh){
- if(kmh<1) return "rgba(0,0,0,0)";
- if(kmh<10) return "#e3f2fd";
- if(kmh<25) return "#90caf9";
- if(kmh<40) return "#42a5f5";
- if(kmh<60) return "#ffee58";
- if(kmh<80) return "#ffb300";
- if(kmh<100) return "#f4511e";
- return "#b71c1c";
-}
-
-// ===== VENTO EM MILISSEGUNDOS
-let lock=false;
-async function atualizarVento(){
- if(lock) return;
- lock=true;
-
+// =====================
+// QUADRADOS DE VENTO (estável)
+// =====================
+async function vento(){
  ventoLayer.clearLayers();
- const b=map.getBounds();
- const step=stepPorZoom(map.getZoom());
+ const b = map.getBounds();
+ const step = map.getZoom() < 5 ? 8 : 4;
 
- for(let lat=Math.floor(b.getSouth());lat<b.getNorth();lat+=step){
-  for(let lon=Math.floor(b.getWest());lon<b.getEast();lon+=step){
-   fetch(`${API}/wind?lat=${lat}&lon=${lon}`)
-    .then(r=>r.json())
-    .then(d=>{
-     L.rectangle(
-      [[lat,lon],[lat+step,lon+step]],
-      {fillColor:corVento(d.wind),fillOpacity:.55,weight:0}
-     ).addTo(ventoLayer);
-    });
+ for(let lat=b.getSouth();lat<b.getNorth();lat+=step){
+  for(let lon=b.getWest();lon<b.getEast();lon+=step){
+   const r = await fetch(`${API}/wind?lat=${lat}&lon=${lon}`);
+   const d = await r.json();
+
+   L.rectangle(
+    [[lat,lon],[lat+step,lon+step]],
+    {fillColor:corVento(d.wind),fillOpacity:.55,weight:0}
+   ).addTo(ventoLayer);
   }
  }
- setTimeout(()=>lock=false,700);
 }
 
-// ===== ALERTAS NOAA / INMET
-async function carregarAlertas(){
+// =====================
+// ALERTAS
+// =====================
+async function alertas(){
  alertaLayer.clearLayers();
  const r = await fetch(`${API}/alertas`);
- const dados = await r.json();
+ const d = await r.json();
 
- dados.forEach(a=>{
-  const m = L.marker([a.lat,a.lon],{
-   icon:L.divIcon({
-    html:`<div style="font-size:26px">${a.emoji}</div>`
-   })
-  }).addTo(alertaLayer);
-
-  m.on("click",()=>abrirPainel(a));
+ d.forEach(a=>{
+  L.marker([a.lat,a.lon],{
+   icon:L.divIcon({html:`<div style="font-size:28px">${a.emoji}</div>`})
+  })
+  .on("click",()=>abrirPainel(a))
+  .addTo(alertaLayer);
  });
 }
 
-// ===== PAINEL MOBILE
-function abrirPainel(d){
+// =====================
+// PAINEL + PREVISÃO
+// =====================
+async function abrirPainel(a){
  info.style.display="block";
- info.innerHTML=`
+ const f = await fetch(`${API}/forecast?lat=${a.lat}&lon=${a.lon}`);
+ const dias = await f.json();
+
+ info.innerHTML = `
  <div id="close">✖</div>
- <b>${d.event}</b><br><br>
- ${d.description || ""}<hr>
- 🌡️ ${d.temp}°C<br>
- 💧 Umidade: ${d.humidity}%<br>
- 🌬️ Vento: ${d.wind} km/h<br>
- 📅 Previsão: Seg → Sex
+ <b>${a.event}</b><br>${a.description}<hr>
+ ${dias.map(d=>`
+ 🌡️ ${d.temp}°C | 💧 ${d.humidity}% | ☁️ ${d.weather}<br>
+ `).join("")}
  `;
  document.getElementById("close").onclick=()=>info.style.display="none";
 }
 
-map.on("zoomend moveend", atualizarVento);
+map.on("moveend zoomend", vento);
 
-atualizarVento();
-carregarAlertas();
+vento();
+alertas();
