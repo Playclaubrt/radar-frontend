@@ -1,81 +1,115 @@
 const API = "https://radar-backend-p5d4.onrender.com/";
 
-const map = L.map("map",{minZoom:3}).setView([0,0],3);
+const map = L.map("map", { minZoom: 3 }).setView([-20, -60], 3);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-const ventoLayer = L.layerGroup().addTo(map);
-const alertaLayer = L.layerGroup().addTo(map);
+const windLayer = L.layerGroup().addTo(map);
+const alertLayer = L.layerGroup().addTo(map);
+
 const info = document.getElementById("info");
 
-// =====================
-// ESCALA DE VENTO
-// =====================
-function corVento(k){
- if(k<1) return "transparent";
- if(k<20) return "#90caf9";
- if(k<40) return "#42a5f5";
- if(k<60) return "#ffee58";
- if(k<80) return "#ff9800";
- return "#f44336";
-}
-
-// =====================
-// QUADRADOS DE VENTO (estável)
-// =====================
-async function vento(){
- ventoLayer.clearLayers();
- const b = map.getBounds();
- const step = map.getZoom() < 5 ? 8 : 4;
-
- for(let lat=b.getSouth();lat<b.getNorth();lat+=step){
-  for(let lon=b.getWest();lon<b.getEast();lon+=step){
-   const r = await fetch(`${API}/wind?lat=${lat}&lon=${lon}`);
-   const d = await r.json();
-
-   L.rectangle(
-    [[lat,lon],[lat+step,lon+step]],
-    {fillColor:corVento(d.wind),fillOpacity:.55,weight:0}
-   ).addTo(ventoLayer);
+/* ================= BUSCA ================= */
+document.getElementById("search").addEventListener("keydown", async e => {
+  if (e.key === "Enter") {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${e.target.value}`
+    );
+    const d = await r.json();
+    if (d[0]) {
+      map.setView([Number(d[0].lat), Number(d[0].lon)], 7);
+    }
   }
- }
+});
+
+/* ================= CORES DO VENTO ================= */
+function windColor(kmh) {
+  if (kmh <= 1) return "#ffffff";
+  if (kmh <= 20) return "#bbdefb";
+  if (kmh <= 40) return "#4caf50";
+  if (kmh <= 60) return "#ffee58";
+  if (kmh <= 80) return "#ff9800";
+  return "#f44336";
 }
 
-// =====================
-// ALERTAS
-// =====================
-async function alertas(){
- alertaLayer.clearLayers();
- const r = await fetch(`${API}/alertas`);
- const d = await r.json();
+/* ================= QUADRADOS DE VENTO ================= */
+async function carregarVento() {
+  windLayer.clearLayers();
 
- d.forEach(a=>{
-  L.marker([a.lat,a.lon],{
-   icon:L.divIcon({html:`<div style="font-size:28px">${a.emoji}</div>`})
-  })
-  .on("click",()=>abrirPainel(a))
-  .addTo(alertaLayer);
- });
+  const r = await fetch(`${API}/wind-grid`);
+  const data = await r.json();
+
+  data.forEach(p => {
+    const rect = L.rectangle(
+      [[p.lat, p.lon], [p.lat + p.step, p.lon + p.step]],
+      {
+        fillColor: windColor(p.wind),
+        fillOpacity: 0.45,
+        weight: 0
+      }
+    );
+    windLayer.addLayer(rect);
+  });
 }
 
-// =====================
-// PAINEL + PREVISÃO
-// =====================
-async function abrirPainel(a){
- info.style.display="block";
- const f = await fetch(`${API}/forecast?lat=${a.lat}&lon=${a.lon}`);
- const dias = await f.json();
+/* ================= ALERTAS NOAA ================= */
+async function carregarAlertas() {
+  alertLayer.clearLayers();
 
- info.innerHTML = `
- <div id="close">✖</div>
- <b>${a.event}</b><br>${a.description}<hr>
- ${dias.map(d=>`
- 🌡️ ${d.temp}°C | 💧 ${d.humidity}% | ☁️ ${d.weather}<br>
- `).join("")}
- `;
- document.getElementById("close").onclick=()=>info.style.display="none";
+  const r = await fetch(`${API}/alertas`);
+  const alerts = await r.json();
+
+  alerts.forEach(a => {
+    const rect = L.rectangle(
+      [[a.lat1, a.lon1], [a.lat2, a.lon2]],
+      {
+        fillOpacity: 0,
+        weight: 0,
+        interactive: true
+      }
+    ).addTo(alertLayer);
+
+    rect.bindTooltip(a.emoji, {
+      permanent: true,
+      direction: "center",
+      className: "emoji-alerta"
+    });
+
+    rect.on("click", () => {
+      info.style.display = "block";
+      info.innerHTML = `
+        <div id="close" onclick="info.style.display='none'">✖</div>
+        <div style="white-space:pre-wrap;font-size:15px">
+${a.description}
+        </div>
+      `;
+    });
+  });
 }
 
-map.on("moveend zoomend", vento);
+/* ================= PREVISÃO AO CLICAR NO MAPA ================= */
+map.on("click", async e => {
+  const r = await fetch(
+    `${API}/forecast?lat=${e.latlng.lat}&lon=${e.latlng.lng}`
+  );
+  const d = await r.json();
 
-vento();
-alertas();
+  info.style.display = "block";
+  info.innerHTML = `
+    <div id="close" onclick="info.style.display='none'">✖</div>
+    <b>Previsão 5 Dias</b><br><br>
+    ${d.map(x => `
+      📅 ${x.day}<br>
+      ☁️ ${x.weather}<br>
+      🌡️ ${x.temp} °C<br>
+      💧 ${x.humidity}%<br>
+      🌬️ ${x.wind} km/h<br><br>
+    `).join("")}
+  `;
+});
+
+/* ================= INIT ================= */
+carregarVento();
+carregarAlertas();
+
+setInterval(carregarVento, 60000);
+setInterval(carregarAlertas, 120000);
