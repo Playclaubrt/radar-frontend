@@ -2,68 +2,57 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar Global Oficial</title>
+<title>Radar Global</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 
 <style>
-html,body,#map{height:100%;margin:0;background:#000;font-family:Arial}
+html,body,#map{height:100%;margin:0;background:#000}
 #map{z-index:1}
 
 #search{
-  position:absolute;top:10px;left:50%;
-  transform:translateX(-50%);
-  width:85%;padding:10px;
-  border-radius:12px;border:none;
-  z-index:3000;font-size:16px
+ position:absolute;top:10px;left:50%;
+ transform:translateX(-50%);
+ width:85%;padding:10px;
+ border-radius:12px;border:none;z-index:3000
 }
 
-#barraVento{
-  position:fixed;bottom:65px;left:5%;
-  width:90%;height:8px;border-radius:10px;
-  background:linear-gradient(to right,#0f0,#ff0,#f00);
-  z-index:2000
+#painel{
+ position:fixed;bottom:0;left:0;right:0;
+ background:#111;color:#fff;
+ padding:12px;display:none;
+ border-radius:18px 18px 0 0;
+ z-index:4000
 }
 
 #timeline{
-  position:fixed;bottom:0;left:0;right:0;
-  height:55px;background:#000;
-  border-top:3px solid #00ff88;
-  display:flex;justify-content:space-around;
-  align-items:center;color:#fff;z-index:2000
+ position:fixed;bottom:65px;left:0;right:0;
+ display:flex;justify-content:space-around;
+ color:#0f0;z-index:3000
 }
 
-#bottomBox{
-  position:fixed;bottom:120px;left:10px;right:10px;
-  background:rgba(0,0,0,.88);
-  color:#fff;padding:12px;
-  border-radius:14px;display:none;
-  z-index:4000
-}
-
-#bottomBox button{
-  float:right;background:none;
-  border:none;color:#fff;
-  font-size:18px
+#barraVento{
+ position:fixed;bottom:100px;left:5%;
+ width:90%;height:8px;
+ background:linear-gradient(to right,#fff,#ff0,#f00);
+ border-radius:10px;z-index:3000
 }
 </style>
 </head>
 
 <body>
 
-<input id="search" placeholder="Buscar cidade, estado ou país">
+<input id="search" placeholder="Buscar local">
 <div id="map"></div>
 <div id="barraVento"></div>
 
-<div id="bottomBox">
-  <button onclick="this.parentElement.style.display='none'">✖</button>
-  <div id="forecastContent"></div>
+<div id="timeline">
+ <span>Seg</span><span>Ter</span><span>Qua</span>
+ <span>Qui</span><span>Sex</span>
 </div>
 
-<div id="timeline">
-  <span>-5d</span><span>-3d</span><b>HOJE</b><span>+3d</span><span>+5d</span>
-</div>
+<div id="painel"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="script.js"></script>
