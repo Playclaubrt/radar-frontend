@@ -1,74 +1,53 @@
 const API = "https://radar-backend-orat.onrender.com/";
 
-const map = L.map("map",{
- minZoom:3,maxZoom:8
-}).setView([0,0],3);
-
+const map = L.map("map",{minZoom:3}).setView([-15,-45],3);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-const ventoLayer = L.layerGroup().addTo(map);
-const alertaLayer = L.layerGroup().addTo(map);
-const painel = document.getElementById("painel");
+const alertLayer = L.layerGroup().addTo(map);
+const info = document.getElementById("info");
 
 // ======================
-// GRADE DE VENTO
+// BUSCA
 // ======================
-function corVento(v){
- if(v<=1) return "#fff";
- if(v<30) return "#8bc34a";
- if(v<60) return "#ffeb3b";
- if(v<90) return "#ff9800";
- return "#f44336";
-}
-
-async function carregarVento(){
- ventoLayer.clearLayers();
- const b = map.getBounds();
- const step = 5;
-
- for(let lat=b.getSouth();lat<b.getNorth();lat+=step){
-  for(let lon=b.getWest();lon<b.getEast();lon+=step){
-
-   const r = await fetch(`${API}/wind?lat=${lat}&lon=${lon}`);
-   const d = await r.json();
-
-   L.rectangle(
-    [[lat,lon],[lat+step,lon+step]],
-    {fillColor:corVento(d.wind_kmh),fillOpacity:.45,weight:0}
-   ).addTo(ventoLayer);
+document.getElementById("search").addEventListener("keydown", async e=>{
+  if(e.key==="Enter"){
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${e.target.value}`);
+    const d = await r.json();
+    if(d[0]) map.setView([d[0].lat,d[0].lon],7);
   }
- }
-}
+});
 
 // ======================
-// ALERTAS NOAA
+// ALERTAS
 // ======================
 async function carregarAlertas(){
- alertaLayer.clearLayers();
- const r = await fetch(`${API}/alertas`);
- const dados = await r.json();
+  alertLayer.clearLayers();
 
- dados.forEach((a,i)=>{
-  const lat = -60 + i*5;
-  const lon = -180 + i*10;
+  const r = await fetch(`${API}/alertas`);
+  const dados = await r.json();
 
-  const q = L.rectangle(
-   [[lat,lon],[lat+4,lon+4]],
-   {fillOpacity:0,weight:0}
-  ).addTo(alertaLayer);
+  [...dados.noaa, ...dados.inmet].forEach(a=>{
+    const lat = (Math.random()*140)-70;
+    const lon = (Math.random()*360)-180;
 
-  q.on("click",()=>{
-   painel.style.display="block";
-   painel.innerHTML=`
-    <b>${a.emoji} ${a.evento}</b><br><br>
-    ${a.descricao || "Sem descrição"}<br><br>
-    📡 Fonte: ${a.fonte}
-   `;
+    const div = L.divIcon({
+      html:`<div style="font-size:26px">${a.emoji}</div>`,
+      className:"",
+      iconSize:[30,30]
+    });
+
+    const m = L.marker([lat,lon],{icon:div}).addTo(alertLayer);
+
+    m.on("click",()=>{
+      info.style.display="block";
+      info.innerHTML=`
+        <b>${a.emoji} ${a.event}</b><br><br>
+        ${a.description || ""}<br><br>
+        📡 Fonte: ${a.source}
+      `;
+    });
   });
- });
 }
 
-map.on("moveend zoomend",carregarVento);
-
-carregarVento();
 carregarAlertas();
+setInterval(carregarAlertas,300000);
