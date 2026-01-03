@@ -7,20 +7,26 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <style>
 html,body,#map{height:100%;margin:0;background:#000}
-#search{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:80%;z-index:3000;padding:8px;border-radius:8px}
-#panel{
+#map{z-index:1}
+
+#search{
+ position:absolute;top:10px;left:50%;
+ transform:translateX(-50%);
+ width:80%;padding:8px;border-radius:10px;border:none;z-index:3000
+}
+
+#info{
  position:fixed;bottom:0;left:0;right:0;
- background:#111;color:#fff;
- padding:10px;display:none;
- z-index:4000;border-radius:15px 15px 0 0
+ background:#000;color:#fff;
+ padding:15px;display:none;z-index:4000
 }
 </style>
 </head>
 <body>
 
-<input id="search" placeholder="Buscar cidade">
+<input id="search" placeholder="Buscar local">
 <div id="map"></div>
-<div id="panel"></div>
+<div id="info"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="script.js"></script>
