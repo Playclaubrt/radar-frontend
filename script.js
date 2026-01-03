@@ -1,95 +1,96 @@
-const API = "https://radar-backend-orat.onrender.com/";
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+import requests, feedparser, os
 
-const map = L.map("map",{minZoom:3,maxZoom:7}).setView([-20,-50],3);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+app = Flask(__name__)
+CORS(app)
 
-const windLayer = L.layerGroup().addTo(map);
-const alertLayer = L.layerGroup().addTo(map);
-const panel = document.getElementById("panel");
+OWM_KEY = os.getenv("OWM_KEY")  # coloque no Render
 
-document.getElementById("search").addEventListener("keydown",async e=>{
- if(e.key==="Enter"){
-  const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${e.target.value}`);
-  const d = await r.json();
-  if(d[0]) map.setView([d[0].lat,d[0].lon],6);
- }
-});
+# ================= INMET =================
+@app.route("/inmet")
+def inmet():
+    resultado = {"geograficos": [], "textuais": []}
 
-// ===================
-// QUADRADOS DE VENTO (GRADE LAT/LON – RÁPIDO)
-// ===================
-function windColor(v){
- if(v<20) return "#9be7ff";
- if(v<40) return "#7CFC00";
- if(v<60) return "#FFD700";
- if(v<80) return "#FF8C00";
- return "#FF0000";
-}
+    # NÃO TEXTUAL (API)
+    try:
+        r = requests.get("https://alertas2.inmet.gov.br/api/alertas")
+        for a in r.json():
+            resultado["geograficos"].append({
+                "nivel": a.get("nivel"),
+                "evento": a.get("evento"),
+                "descricao": a.get("descricao"),
+                "inicio": a.get("inicio"),
+                "fim": a.get("fim"),
+                "areas": a.get("areas")
+            })
+    except:
+        pass
 
-async function loadWind(){
- windLayer.clearLayers();
- const b = map.getBounds();
- const step = 5;
+    # TEXTUAL (RSS)
+    try:
+        feed = feedparser.parse("https://alertas2.inmet.gov.br/rss")
+        for e in feed.entries:
+            resultado["textuais"].append({
+                "titulo": e.title,
+                "texto": e.description,
+                "data": e.published
+            })
+    except:
+        pass
 
- for(let lat=Math.floor(b.getSouth());lat<b.getNorth();lat+=step){
-  for(let lon=Math.floor(b.getWest());lon<b.getEast();lon+=step){
-   fetch(`${API}/owm?lat=${lat}&lon=${lon}`)
-   .then(r=>r.json())
-   .then(d=>{
-     L.rectangle([[lat,lon],[lat+step,lon+step]],{
-      fillColor:windColor(d.wind),
-      fillOpacity:0.45,
-      weight:0
-     }).addTo(windLayer);
-   });
-  }
- }
-}
+    return jsonify(resultado)
 
-// ===================
-// ALERTAS NOAA + INMET
-// ===================
-async function loadAlerts(){
- alertLayer.clearLayers();
 
- const noaa = await fetch(`${API}/noaa`).then(r=>r.json());
- const inmet = await fetch(`${API}/inmet`).then(r=>r.json());
+# ================= NOAA =================
+@app.route("/noaa")
+def noaa():
+    alerts = []
+    try:
+        r = requests.get("https://api.weather.gov/alerts/active")
+        for f in r.json()["features"]:
+            p = f["properties"]
+            alerts.append({
+                "evento": p["event"],
+                "texto": p["description"],
+                "inicio": p["effective"],
+                "fim": p["expires"],
+                "area": p["areaDesc"]
+            })
+    except:
+        pass
+    return jsonify(alerts)
 
- [...noaa,...inmet].forEach(a=>{
-  const lat = (a.bounds[0][0]+a.bounds[1][0])/2;
-  const lon = (a.bounds[0][1]+a.bounds[1][1])/2;
 
-  const m = L.marker([lat,lon],{
-    icon:L.divIcon({html:"⚠️",className:""})
-  }).addTo(alertLayer);
+# ================= OWM =================
+@app.route("/owm")
+def owm():
+    lat = request.args.get("lat")
+    lon = request.args.get("lon")
 
-  m.on("click",()=>panel.innerHTML=`
-   <b>${a.title}</b><br><br>
-   ${a.description}<br><br>
-   Fonte: ${a.source}
-  ` || (panel.style.display="block"));
- });
-}
+    atual = requests.get(
+        f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OWM_KEY}&units=metric&lang=pt"
+    ).json()
 
-// ===================
-// CLICK MAP → PREVISÃO 5 DIAS
-// ===================
-map.on("click",async e=>{
- const r = await fetch(`${API}/forecast?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
- const d = await r.json();
+    forecast = requests.get(
+        f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OWM_KEY}&units=metric&lang=pt"
+    ).json()
 
- panel.style.display="block";
- panel.innerHTML = d.map((i,idx)=>`
-  <b>Dia ${idx+1}</b><br>
-  🌡️ ${i.temp}°C<br>
-  💧 ${i.humidity}%<br>
-  🌬️ ${i.wind.toFixed(1)} km/h<br>
-  📊 ${i.pressure} hPa<br><br>
- `).join("");
-});
+    return jsonify({
+        "atual": {
+            "temp": atual["main"]["temp"],
+            "umidade": atual["main"]["humidity"],
+            "pressao": atual["main"]["pressure"],
+            "vento": atual["wind"]["speed"] * 3.6,
+            "tempo": atual["weather"][0]["description"]
+        },
+        "previsao": forecast["list"]
+    })
 
-map.on("moveend zoomend",loadWind);
 
-loadWind();
-loadAlerts();
-setInterval(loadAlerts,300000);
+@app.route("/")
+def home():
+    return "Radar Backend Online"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
