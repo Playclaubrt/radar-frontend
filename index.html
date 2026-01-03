@@ -14,48 +14,52 @@ html,body,#map{height:100%;margin:0;background:#000;font-family:Arial}
 #search{
   position:absolute;top:10px;left:50%;
   transform:translateX(-50%);
-  width:80%;padding:8px;border-radius:10px;border:none;z-index:2000
-}
-
-#info{
-  position:fixed;bottom:65px;left:10px;right:10px;
-  background:rgba(0,0,0,.88);color:#fff;
-  padding:12px;border-radius:14px;
-  display:none;z-index:3000;
-  max-height:45%;overflow:auto
+  width:85%;padding:10px;
+  border-radius:12px;border:none;
+  z-index:3000;font-size:16px
 }
 
 #barraVento{
-  position:fixed;bottom:55px;left:5%;
-  width:90%;height:6px;border-radius:10px;
-  background:linear-gradient(to right,#fff,#ff0,#f00);
+  position:fixed;bottom:65px;left:5%;
+  width:90%;height:8px;border-radius:10px;
+  background:linear-gradient(to right,#0f0,#ff0,#f00);
   z-index:2000
 }
 
 #timeline{
   position:fixed;bottom:0;left:0;right:0;
-  height:50px;background:#000;border-top:3px solid #00ff88;
-  display:flex;justify-content:space-around;align-items:center;
-  color:#fff;z-index:2000;font-size:13px
+  height:55px;background:#000;
+  border-top:3px solid #00ff88;
+  display:flex;justify-content:space-around;
+  align-items:center;color:#fff;z-index:2000
 }
 
-#close{
-  position:absolute;top:6px;right:10px;
-  cursor:pointer;font-size:18px
+#bottomBox{
+  position:fixed;bottom:120px;left:10px;right:10px;
+  background:rgba(0,0,0,.88);
+  color:#fff;padding:12px;
+  border-radius:14px;display:none;
+  z-index:4000
 }
 
-.emoji-alerta{
-  font-size:20px;
+#bottomBox button{
+  float:right;background:none;
+  border:none;color:#fff;
+  font-size:18px
 }
 </style>
 </head>
 
 <body>
 
-<input id="search" placeholder="Buscar cidade ou local">
+<input id="search" placeholder="Buscar cidade, estado ou país">
 <div id="map"></div>
-<div id="info"></div>
 <div id="barraVento"></div>
+
+<div id="bottomBox">
+  <button onclick="this.parentElement.style.display='none'">✖</button>
+  <div id="forecastContent"></div>
+</div>
 
 <div id="timeline">
   <span>-5d</span><span>-3d</span><b>HOJE</b><span>+3d</span><span>+5d</span>
