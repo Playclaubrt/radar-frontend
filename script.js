@@ -1,4 +1,4 @@
-const API = "https://radar-backend-p5d4.onrender.com/";
+const API = "https://radar-backend-orat.onrender.com/";
 
 const map = L.map("map", { minZoom: 3 }).setView([-20, -60], 3);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
