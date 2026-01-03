@@ -2,31 +2,23 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Radar Global</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar Meteorológico</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <style>
-html,body,#map{height:100%;margin:0;background:#000}
-#map{z-index:1}
-
-#search{
- position:absolute;top:10px;left:50%;
- transform:translateX(-50%);
- width:80%;padding:8px;border-radius:10px;border:none;z-index:3000
+html,body,#map{height:100%;margin:0}
+#search{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000}
+#panel{
+ position:absolute;bottom:0;width:100%;background:#111;color:#fff;
+ padding:10px;display:none;z-index:1000
 }
-
-#info{
- position:fixed;bottom:0;left:0;right:0;
- background:#000;color:#fff;
- padding:15px;display:none;z-index:4000
-}
+.alert{font-size:22px;cursor:pointer}
 </style>
 </head>
 <body>
 
-<input id="search" placeholder="Buscar local">
+<input id="search" placeholder="Buscar cidade..." />
 <div id="map"></div>
-<div id="info"></div>
+<div id="panel"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="script.js"></script>
