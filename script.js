@@ -1,96 +1,74 @@
 const API = "https://radar-backend-orat.onrender.com/";
 
-const map = L.map("map",{minZoom:3,maxZoom:8}).setView([-20,-60],3);
+const map = L.map("map",{
+ minZoom:3,maxZoom:8
+}).setView([0,0],3);
+
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-const windLayer = L.layerGroup().addTo(map);
-const alertLayer = L.layerGroup().addTo(map);
+const ventoLayer = L.layerGroup().addTo(map);
+const alertaLayer = L.layerGroup().addTo(map);
+const painel = document.getElementById("painel");
 
-const bottomBox = document.getElementById("bottomBox");
-const forecastContent = document.getElementById("forecastContent");
+// ======================
+// GRADE DE VENTO
+// ======================
+function corVento(v){
+ if(v<=1) return "#fff";
+ if(v<30) return "#8bc34a";
+ if(v<60) return "#ffeb3b";
+ if(v<90) return "#ff9800";
+ return "#f44336";
+}
 
-// ===== BUSCA =====
-document.getElementById("search").addEventListener("keydown",async e=>{
-  if(e.key==="Enter"){
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${e.target.value}`);
-    const d = await r.json();
-    if(d[0]) map.setView([d[0].lat,d[0].lon],6);
+async function carregarVento(){
+ ventoLayer.clearLayers();
+ const b = map.getBounds();
+ const step = 5;
+
+ for(let lat=b.getSouth();lat<b.getNorth();lat+=step){
+  for(let lon=b.getWest();lon<b.getEast();lon+=step){
+
+   const r = await fetch(`${API}/wind?lat=${lat}&lon=${lon}`);
+   const d = await r.json();
+
+   L.rectangle(
+    [[lat,lon],[lat+step,lon+step]],
+    {fillColor:corVento(d.wind_kmh),fillOpacity:.45,weight:0}
+   ).addTo(ventoLayer);
   }
-});
-
-// ===== COR DO VENTO =====
-function windColor(kmh){
-  if(kmh<10) return "#cce7ff";
-  if(kmh<30) return "#8bc34a";
-  if(kmh<60) return "#ffeb3b";
-  if(kmh<90) return "#ff9800";
-  return "#f44336";
+ }
 }
 
-// ===== QUADRADOS DE VENTO (RÁPIDO) =====
-function atualizarVento(){
-  windLayer.clearLayers();
-  const c = map.getCenter();
-  const step = 2;
+// ======================
+// ALERTAS NOAA
+// ======================
+async function carregarAlertas(){
+ alertaLayer.clearLayers();
+ const r = await fetch(`${API}/alertas`);
+ const dados = await r.json();
 
-  for(let i=-3;i<=3;i++){
-    for(let j=-3;j<=3;j++){
-      const lat=c.lat+i*step;
-      const lon=c.lng+j*step;
+ dados.forEach((a,i)=>{
+  const lat = -60 + i*5;
+  const lon = -180 + i*10;
 
-      fetch(`${API}/wind-grid?lat=${lat}&lon=${lon}`)
-        .then(r=>r.json())
-        .then(d=>{
-          L.rectangle(
-            [[lat,lon],[lat+step,lon+step]],
-            {fillColor:windColor(d.wind_kmh),fillOpacity:.45,weight:0}
-          ).addTo(windLayer);
-        });
-    }
-  }
+  const q = L.rectangle(
+   [[lat,lon],[lat+4,lon+4]],
+   {fillOpacity:0,weight:0}
+  ).addTo(alertaLayer);
+
+  q.on("click",()=>{
+   painel.style.display="block";
+   painel.innerHTML=`
+    <b>${a.emoji} ${a.evento}</b><br><br>
+    ${a.descricao || "Sem descrição"}<br><br>
+    📡 Fonte: ${a.fonte}
+   `;
+  });
+ });
 }
 
-// ===== ALERTAS NOAA =====
-function carregarAlertas(){
-  fetch(`${API}/alertas`)
-    .then(r=>r.json())
-    .then(d=>{
-      alertLayer.clearLayers();
-      d.forEach(a=>{
-        const r=L.rectangle(
-          [[-90,-180],[90,180]],
-          {fillOpacity:0,weight:0}
-        );
-        r.on("click",()=>mostrarAlerta(a));
-        alertLayer.addLayer(r);
-      });
-    });
-}
+map.on("moveend zoomend",carregarVento);
 
-function mostrarAlerta(a){
-  bottomBox.style.display="block";
-  forecastContent.innerHTML=`
-    <b>${a.event}</b><br><br>
-    ${a.description}
-  `;
-}
-
-// ===== FORECAST 5 DIAS =====
-map.on("click",e=>{
-  fetch(`${API}/forecast?lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
-    .then(r=>r.json())
-    .then(d=>{
-      bottomBox.style.display="block";
-      forecastContent.innerHTML=d.list.slice(0,5).map(x=>`
-        🌡️ ${x.main.temp}°C
-        💧 ${x.main.humidity}%
-        🌬️ ${(x.wind.speed*3.6).toFixed(1)} km/h
-        ☁️ ${x.weather[0].main}
-      `).join("<hr>");
-    });
-});
-
-map.on("moveend zoomend",atualizarVento);
-
-atualizarVento();
+carregarVento();
 carregarAlertas();
