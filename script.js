@@ -1,49 +1,132 @@
 const API = "https://radar-backend-1-j3y5.onrender.com";
 
-const map = L.map("map").setView([-15, -55], 4);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+const map = L.map("map", {
+  minZoom: 3,
+  maxZoom: 7
+}).setView([-14.2, -51.9], 3);
 
-const panel = document.getElementById("panel");
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
 
-function showPanel(html){
- panel.innerHTML = html;
- panel.style.display = "block";
+const alertLayer = L.layerGroup().addTo(map);
+const info = document.getElementById("info");
+
+/* =========================
+   SEARCH (TIPO WINDY)
+========================= */
+document.getElementById("search").addEventListener("keydown", async e => {
+  if (e.key === "Enter") {
+    const q = e.target.value;
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${q}`
+    );
+    const d = await r.json();
+    if (d[0]) map.setView([d[0].lat, d[0].lon], 7);
+  }
+});
+
+/* =========================
+   ALERTAS INMET
+========================= */
+async function carregarINMET() {
+  const r = await fetch(`${API}/inmet`);
+  const data = await r.json();
+
+  data.forEach(a => {
+
+    // ALERTA GEOMÉTRICO
+    if (a.type === "geometrico" && a.polygon) {
+      const poly = L.polygon(a.polygon, {
+        color: "transparent",
+        fillOpacity: 0
+      }).addTo(alertLayer);
+
+      poly.on("click", () => abrirAlerta(a));
+    }
+
+    // ALERTA TEXTUAL
+    if (a.type === "textual") {
+      const m = L.marker([a.lat, a.lon], {
+        opacity: 0
+      }).addTo(alertLayer);
+
+      m.on("click", () => abrirAlerta(a));
+    }
+  });
 }
 
-fetch(`${API}/inmet`).then(r=>r.json()).then(alertas=>{
- alertas.forEach(a=>{
-   if(a.tipo==="geometrico" && a.poligono){
-     L.polygon(a.poligono,{color:"orange"})
-      .addTo(map)
-      .on("click",()=>showPanel(`<h3>${a.titulo}</h3><p>${a.texto}</p>`));
-   }else{
-     a.ufs.forEach(u=>{
-       L.marker([u.lat,u.lon],{
-         icon:L.divIcon({html:"⚠️",className:"alert"})
-       }).addTo(map)
-       .on("click",()=>showPanel(`<h3>${a.titulo}</h3><p>${a.texto}</p>`));
-     });
-   }
- });
+/* =========================
+   ALERTAS NOAA
+========================= */
+async function carregarNOAA() {
+  const r = await fetch(`${API}/noaa`);
+  const data = await r.json();
+
+  data.forEach(a => {
+    if (!a.polygon) return;
+
+    const poly = L.polygon(a.polygon[0], {
+      color: "transparent",
+      fillOpacity: 0
+    }).addTo(alertLayer);
+
+    poly.on("click", () => abrirAlerta(a));
+  });
+}
+
+/* =========================
+   CLICK NO MAPA → WEATHER
+========================= */
+map.on("click", async e => {
+  const lat = e.latlng.lat;
+  const lon = e.latlng.lng;
+
+  const w = await fetch(`${API}/owm?lat=${lat}&lon=${lon}`).then(r => r.json());
+  const f = await fetch(`${API}/forecast?lat=${lat}&lon=${lon}`).then(r => r.json());
+
+  info.style.display = "block";
+
+  let dias = "";
+  Object.entries(f).forEach(([d, v]) => {
+    dias += `
+      <div>
+        <b>${d}</b><br>
+        🌡️ ${v.temp}°C |
+        💧 ${v.humidity}% |
+        🌬️ ${v.wind.toFixed(1)} km/h
+      </div><hr>
+    `;
+  });
+
+  info.innerHTML = `
+    <button onclick="info.style.display='none'">✖</button><br><br>
+    ☁️ ${w.description}<br>
+    🌡️ ${w.temp} °C<br>
+    💧 Umidade: ${w.humidity}%<br>
+    🌬️ Vento: ${w.wind.toFixed(1)} km/h<br>
+    📊 Pressão: ${w.pressure} hPa<br><br>
+    <b>Previsão 5 dias</b><br>
+    ${dias}
+  `;
 });
 
-map.on("click",e=>{
- fetch(`${API}/owm?lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
- .then(r=>r.json()).then(w=>{
-   fetch(`${API}/forecast?lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
-   .then(r=>r.json()).then(f=>{
-     showPanel(`
-     🌥️ ${w.weather[0].description}<br>
-     🌡️ ${w.main.temp} °C<br>
-     💧 Umidade: ${w.main.humidity}%<br>
-     🌬️ Vento: ${w.wind.speed} km/h<br>
-     📊 Pressão: ${w.main.pressure} hPa<br>
-     <hr>
-     <b>Previsão 5 dias:</b><br>
-     ${f.list.filter((_,i)=>i%8===0).map(d=>`
-       ${new Date(d.dt*1000).toLocaleDateString()} - ${d.main.temp}°C
-     `).join("<br>")}
-     `);
-   });
- });
-});
+/* =========================
+   ABRIR ALERTA
+========================= */
+function abrirAlerta(a) {
+  info.style.display = "block";
+
+  info.innerHTML = `
+    <button onclick="info.style.display='none'">✖</button><br><br>
+    <b>${a.emoji || "⚠️"} ${a.title || a.event}</b><br><br>
+    ${a.description || a.headline}<br><br>
+    <small>Fonte: ${a.source || "INMET/NOAA"}</small>
+  `;
+}
+
+/* =========================
+   INIT
+========================= */
+carregarINMET();
+carregarNOAA();
