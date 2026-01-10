@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Radar INMET</title>
+<style>
+body {
+    background: #081824;
+    color: white;
+    font-family: Arial;
+}
+.alerta {
+    border: 1px solid #ffcc00;
+    padding: 10px;
+    margin: 10px 0;
+}
+</style>
+</head>
+<body>
+
+<h1>Alertas INMET</h1>
+
+<button onclick="carregar('textual')">Textual</button>
+<button onclick="carregar('geografico')">Geográfico</button>
+
+<div id="lista"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
