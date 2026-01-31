@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+    <title>Meu Mapa de Alertas</title>
+</head>
+<body>
+    <div id="search-container">
+        <input type="text" id="cityInput" placeholder="Cidade...">
+        <button onclick="buscar()">Pesquisar</button>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map', {
+            minZoom: 10, // Mostra a cidade
+            maxZoom: 18  // Chega na rua
+        }).setView([-15.7938, -47.8827], 4);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        async function buscar() {
+            const cidade = document.getElementById('cityInput').value;
+            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
+            const data = await resp.json();
+            if(data.length > 0) {
+                map.setView([data[0].lat, data[0].lon], 15);
+            }
+        }
+    </script>
+</body>
+</html>
