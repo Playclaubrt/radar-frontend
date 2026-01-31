@@ -1,35 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mapa de Alertas INMET</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
-    <title>Meu Mapa de Alertas</title>
 </head>
 <body>
+
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Cidade...">
-        <button onclick="buscar()">Pesquisar</button>
+        <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
+        <button onclick="buscar()">🔍</button>
     </div>
+
     <div id="map"></div>
+
+    <div id="painel-alerta">
+        <div class="drag-handle" onclick="fecharPainel()"></div>
+        <button class="close-btn" onclick="fecharPainel()">✕</button>
+        <div id="conteudo-alerta">
+            </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Configuração do Mapa conforme pedido
+        // Zoom 3 (América do Sul) até 17 (Rua)
         const map = L.map('map', {
-            minZoom: 10, // Mostra a cidade
-            maxZoom: 18  // Chega na rua
-        }).setView([-15.7938, -47.8827], 4);
+            minZoom: 3, 
+            maxZoom: 17,
+            zoomControl: false // Oculta botões de +/- para limpar o visual
+        }).setView([-15.7938, -47.8827], 4); // Inicia em Brasília
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
+        // Ícone customizado de alerta
+        const alertaIcon = L.divIcon({
+            html: '<div class="emoji-icon">🔅</div>',
+            className: 'custom-icon',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        // Função de busca
         async function buscar() {
             const cidade = document.getElementById('cityInput').value;
+            if (!cidade) return;
             const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
             const data = await resp.json();
             if(data.length > 0) {
-                map.setView([data[0].lat, data[0].lon], 15);
+                map.setView([data[0].lat, data[0].lon], 17); // Vai para o zoom de rua
             }
         }
+
+        // Carregar alertas do seu Server.js (Node)
+        async function carregarAlertas() {
+            try {
+                const res = await fetch('/api/alertas');
+                const alertas = await res.json();
+                
+                alertas.forEach(alerta => {
+                    // Por enquanto colocando em Brasília como marcador de teste
+                    // No futuro usaremos os polígonos reais aqui
+                    const marker = L.marker([-15.7938, -47.8827], {icon: alertaIcon}).addTo(map);
+                    
+                    marker.on('click', () => {
+                        exibirDetalhes(alerta);
+                    });
+                });
+            } catch (err) {
+                console.log("Erro ao buscar alertas do servidor.");
+            }
+        }
+
+        function exibirDetalhes(alerta) {
+            const painel = document.getElementById('painel-alerta');
+            const conteudo = document.getElementById('conteudo-alerta');
+            
+            // Extraindo dados do objeto enviado pelo servidor
+            const titulo = alerta.title ? alerta.title[0] : "Alerta Meteorológico";
+            const data = alerta.pubDate ? alerta.pubDate[0] : "Data não informada";
+            const descricao = alerta.description ? alerta.description[0] : "";
+
+            conteudo.innerHTML = `
+                <h2>${titulo}</h2>
+                <p class="data-alerta"><strong>Publicado em:</strong> ${data}</p>
+                <hr>
+                <div class="texto-descricao">${descricao}</div>
+            `;
+            
+            painel.classList.add('active');
+        }
+
+        function fecharPainel() {
+            document.getElementById('painel-alerta').classList.remove('active');
+        }
+
+        carregarAlertas();
     </script>
 </body>
 </html>
