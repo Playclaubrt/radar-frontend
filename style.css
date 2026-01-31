@@ -1,0 +1,6 @@
+#map { height: 100vh; width: 100%; position: absolute; top: 0; left: 0; }
+#search-container {
+    position: absolute; top: 10px; left: 10px; z-index: 1000;
+    background: white; padding: 5px; border-radius: 5px;
+}
+input { padding: 5px; border: 1px solid #ccc; }
