@@ -1,6 +1,114 @@
-#map { height: 100vh; width: 100%; position: absolute; top: 0; left: 0; }
-#search-container {
-    position: absolute; top: 10px; left: 10px; z-index: 1000;
-    background: white; padding: 5px; border-radius: 5px;
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
 }
-input { padding: 5px; border: 1px solid #ccc; }
+
+#map {
+    height: 100vh;
+    width: 100vw;
+    z-index: 1;
+}
+
+/* Barra de Pesquisa */
+#search-container {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    z-index: 1000;
+    background: white;
+    display: flex;
+    padding: 8px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+#search-container input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    padding-left: 10px;
+}
+
+#search-container button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* Ícone do Alerta */
+.emoji-icon {
+    font-size: 24px;
+    text-align: center;
+    line-height: 30px;
+    filter: drop-shadow(0 0 5px orange);
+}
+
+/* Painel Inferior */
+#painel-alerta {
+    position: fixed;
+    bottom: -60%; /* Começa escondido */
+    left: 0;
+    width: 100%;
+    height: 55%; /* Ocupa um pouco mais da metade da tela */
+    background: white;
+    z-index: 2000;
+    transition: bottom 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    border-radius: 25px 25px 0 0;
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.2);
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+#painel-alerta.active {
+    bottom: 0; /* Sobe quando ativo */
+}
+
+/* Barra de puxar no topo do painel */
+.drag-handle {
+    width: 40px;
+    height: 5px;
+    background: #ccc;
+    border-radius: 10px;
+    margin: -10px auto 15px auto;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Estilo do conteúdo */
+#conteudo-alerta h2 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 10px;
+    padding-right: 30px;
+}
+
+.data-alerta {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.texto-descricao {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #444;
+    margin-top: 15px;
+}
