@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapa Leve</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Pesquisar...">
+        <input type="text" id="cityInput" placeholder="Cidade...">
         <button onclick="buscar()">🔍</button>
     </div>
 
@@ -18,31 +17,32 @@
 
     <div id="painel-alerta">
         <div class="drag-handle" onclick="fecharPainel()"></div>
-        <button class="close-btn" onclick="fecharPainel()">✕</button>
         <div id="conteudo-alerta"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // preferCanvas: true é OBRIGATÓRIO para economizar RAM
+        // preferCanvas e markerZoomAnimation false economizam MUITA CPU
         const map = L.map('map', {
             minZoom: 3, 
             maxZoom: 17,
             zoomControl: false,
-            preferCanvas: true 
+            preferCanvas: true,
+            markerZoomAnimation: false, 
+            bounceAtZoomLimits: false
         }).setView([-15.7938, -47.8827], 4);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Usando o servidor do CartoDB Positron (é mais leve que o OpenStreetMap padrão)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             updateWhenIdle: true,
-            keepBuffer: 1 
+            keepBuffer: 0, 
+            noWrap: true
         }).addTo(map);
 
-        // Ícone ULTRA LEVE: Apenas o emoji em uma div transparente sem CSS extra
         const alertaIcon = L.divIcon({
             html: '🔅', 
-            className: '', // Remove qualquer estilo padrão do Leaflet
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+            className: 'invisible-box', // Classe vazia
+            iconSize: [20, 20]
         });
 
         async function buscar() {
@@ -50,39 +50,35 @@
             if (!cidade) return;
             const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
             const data = await resp.json();
-            if(data.length > 0) map.setView([data[0].lat, data[0].lon], 17);
+            if(data.length > 0) {
+                // setView sem animação para não lagar
+                map.setView([data[0].lat, data[0].lon], 17, { animate: false });
+            }
         }
 
         async function carregarAlertas() {
             try {
                 const res = await fetch('/api/alertas');
                 const alertas = await res.json();
-                
                 alertas.forEach(alerta => {
-                    // Criando o marcador com o ícone simplificado
-                    const marker = L.marker([-15.7938, -47.8827], {
-                        icon: alertaIcon,
-                        riseOnHover: false // Desativa efeitos extras para poupar RAM
-                    }).addTo(map);
-                    
-                    marker.on('click', () => exibirDetalhes(alerta));
+                    // Marcador seco, sem frescura
+                    L.marker([-15.7938, -47.8827], { icon: alertaIcon })
+                     .addTo(map)
+                     .on('click', () => exibirDetalhes(alerta));
                 });
-            } catch (err) { console.log("Erro alertas"); }
+            } catch (err) {}
         }
 
         function exibirDetalhes(alerta) {
-            const painel = document.getElementById('painel-alerta');
-            const conteudo = document.getElementById('conteudo-alerta');
-            conteudo.innerHTML = `
-                <h2>${alerta.title ? alerta.title[0] : "Alerta"}</h2>
-                <p>Data: ${alerta.pubDate ? alerta.pubDate[0] : ""}</p>
-                <div style="margin-top:10px;">${alerta.description ? alerta.description[0] : ""}</div>
+            document.getElementById('conteudo-alerta').innerHTML = `
+                <h3>${alerta.title ? alerta.title[0] : "Alerta"}</h3>
+                <p>${alerta.description ? alerta.description[0] : ""}</p>
             `;
-            painel.classList.add('active');
+            document.getElementById('painel-alerta').style.bottom = "0";
         }
 
         function fecharPainel() {
-            document.getElementById('painel-alerta').classList.remove('active');
+            document.getElementById('painel-alerta').style.bottom = "-60%";
         }
 
         carregarAlertas();
