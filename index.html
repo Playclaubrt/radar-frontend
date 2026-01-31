@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapa de Alertas INMET</title>
+    <title>Mapa de Alertas Otimizado</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
+        <input type="text" id="cityInput" placeholder="Procurar cidade ou rua...">
         <button onclick="buscar()">🔍</button>
     </div>
 
@@ -25,19 +25,24 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Configuração do Mapa conforme pedido
-        // Zoom 3 (América do Sul) até 17 (Rua)
+        // Configuração do Mapa
+        // minZoom 3: vê a América do Sul toda | maxZoom 17: vê a rua
         const map = L.map('map', {
             minZoom: 3, 
             maxZoom: 17,
-            zoomControl: false // Oculta botões de +/- para limpar o visual
-        }).setView([-15.7938, -47.8827], 4); // Inicia em Brasília
+            zoomControl: false, // Melhora a performance e limpa o visual no mobile
+            preferCanvas: true  // Renderiza via Canvas (muito mais leve que SVG para RAM)
+        }).setView([-15.7938, -47.8827], 4);
 
+        // Camada de mapa otimizada para gastar menos dados e RAM
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+            attribution: '© OSM',
+            keepBuffer: 2,        // Reduz o número de imagens guardadas na RAM
+            updateWhenIdle: true, // Só carrega novas partes quando o utilizador para de mexer
+            updateWhenZooming: false
         }).addTo(map);
 
-        // Ícone customizado de alerta
+        // Ícone customizado 🔅
         const alertaIcon = L.divIcon({
             html: '<div class="emoji-icon">🔅</div>',
             className: 'custom-icon',
@@ -45,26 +50,32 @@
             iconAnchor: [15, 15]
         });
 
-        // Função de busca
+        // Função de busca (Nominatim)
         async function buscar() {
             const cidade = document.getElementById('cityInput').value;
             if (!cidade) return;
-            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
-            const data = await resp.json();
-            if(data.length > 0) {
-                map.setView([data[0].lat, data[0].lon], 17); // Vai para o zoom de rua
+            
+            try {
+                const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
+                const data = await resp.json();
+                if(data.length > 0) {
+                    // Vai para o local com zoom de rua (17)
+                    map.setView([data[0].lat, data[0].lon], 17);
+                }
+            } catch (e) {
+                console.error("Erro na busca");
             }
         }
 
-        // Carregar alertas do seu Server.js (Node)
+        // Função para carregar alertas do Backend (server.js)
         async function carregarAlertas() {
             try {
                 const res = await fetch('/api/alertas');
                 const alertas = await res.json();
                 
                 alertas.forEach(alerta => {
-                    // Por enquanto colocando em Brasília como marcador de teste
-                    // No futuro usaremos os polígonos reais aqui
+                    // Marcador de teste em Brasília (🔅)
+                    // No futuro, aqui leremos as coordenadas do polígono do INMET
                     const marker = L.marker([-15.7938, -47.8827], {icon: alertaIcon}).addTo(map);
                     
                     marker.on('click', () => {
@@ -72,24 +83,24 @@
                     });
                 });
             } catch (err) {
-                console.log("Erro ao buscar alertas do servidor.");
+                console.log("Erro ao carregar alertas.");
             }
         }
 
+        // Abrir o retângulo inferior com detalhes
         function exibirDetalhes(alerta) {
             const painel = document.getElementById('painel-alerta');
             const conteudo = document.getElementById('conteudo-alerta');
             
-            // Extraindo dados do objeto enviado pelo servidor
-            const titulo = alerta.title ? alerta.title[0] : "Alerta Meteorológico";
-            const data = alerta.pubDate ? alerta.pubDate[0] : "Data não informada";
-            const descricao = alerta.description ? alerta.description[0] : "";
+            const titulo = alerta.title ? alerta.title[0] : "Alerta";
+            const data = alerta.pubDate ? alerta.pubDate[0] : "";
+            const desc = alerta.description ? alerta.description[0] : "";
 
             conteudo.innerHTML = `
                 <h2>${titulo}</h2>
-                <p class="data-alerta"><strong>Publicado em:</strong> ${data}</p>
-                <hr>
-                <div class="texto-descricao">${descricao}</div>
+                <p style="color: #666; font-size: 0.8rem;">Data: ${data}</p>
+                <hr style="border: 0.5px solid #eee;">
+                <div style="margin-top:10px; line-height:1.4;">${desc}</div>
             `;
             
             painel.classList.add('active');
@@ -99,6 +110,7 @@
             document.getElementById('painel-alerta').classList.remove('active');
         }
 
+        // Inicia a carga de alertas
         carregarAlertas();
     </script>
 </body>
