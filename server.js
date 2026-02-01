@@ -11,26 +11,22 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/api/alertas', async (req, res) => {
     try {
-        // Busca INMET (Brasil)
-        const resInmet = await axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/');
-        // Busca NOAA (Alertas Globais/USA - Exemplo de feed geral)
-        const resNoaa = await axios.get('https://www.nhc.noaa.gov/index-at.xml');
+        // Busca INMET
+        const resInmet = await axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/', { timeout: 5000 });
+        // Busca NOAA (Alertas Ativos)
+        const resNoaa = await axios.get('https://www.weather.gov/alerts/wwa.xml', { timeout: 5000 });
 
         const parser = new xml2js.Parser();
-        
-        const parseXml = (xml) => new Promise((resolve) => {
-            parser.parseString(xml, (err, result) => {
-                resolve(result?.rss?.channel[0]?.item || result?.feed?.entry || []);
-            });
+
+        const inmetData = await new Promise(r => parser.parseString(resInmet.data, (e, res) => r(res?.rss?.channel[0]?.item || [])));
+        const noaaData = await new Promise(r => parser.parseString(resNoaa.data, (e, res) => r(res?.rss?.channel[0]?.item || res?.feed?.entry || [])));
+
+        res.json({
+            inmet: inmetData,
+            noaa: noaaData
         });
-
-        const alertasInmet = await parseXml(resInmet.data);
-        const alertasNoaa = await parseXml(resNoaa.data);
-
-        // Une os dois e manda para o site
-        res.json([...alertasInmet, ...alertasNoaa]);
     } catch (error) {
-        res.status(500).send("Erro ao buscar fontes");
+        res.json({ inmet: [], noaa: [] });
     }
 });
 
