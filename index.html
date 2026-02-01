@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
+    <title>Mapa de Alertas</title>
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Cidade...">
+        <input type="text" id="cityInput" placeholder="Procurar cidade...">
         <button onclick="buscar()">🔍</button>
     </div>
 
@@ -22,66 +23,48 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // preferCanvas e markerZoomAnimation false economizam MUITA CPU
+        // preferCanvas: desenha tudo numa camada gráfica única (muito menos RAM)
         const map = L.map('map', {
             minZoom: 3, 
             maxZoom: 17,
             zoomControl: false,
             preferCanvas: true,
-            markerZoomAnimation: false, 
-            bounceAtZoomLimits: false
+            tap: true // Melhora o clique em dispositivos móveis
         }).setView([-15.7938, -47.8827], 4);
 
-        // Usando o servidor do CartoDB Positron (é mais leve que o OpenStreetMap padrão)
+        // Tiles do CartoDB: Mais leves e com menos detalhes que o OSM padrão
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             updateWhenIdle: true,
-            keepBuffer: 0, 
-            noWrap: true
+            keepBuffer: 0
         }).addTo(map);
-
-        const alertaIcon = L.divIcon({
-            html: '🔅', 
-            className: 'invisible-box', // Classe vazia
-            iconSize: [20, 20]
-        });
-
-        async function buscar() {
-            const cidade = document.getElementById('cityInput').value;
-            if (!cidade) return;
-            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
-            const data = await resp.json();
-            if(data.length > 0) {
-                // setView sem animação para não lagar
-                map.setView([data[0].lat, data[0].lon], 17, { animate: false });
-            }
-        }
 
         async function carregarAlertas() {
             try {
                 const res = await fetch('/api/alertas');
                 const alertas = await res.json();
+                
                 alertas.forEach(alerta => {
-                    // Marcador seco, sem frescura
-                    L.marker([-15.7938, -47.8827], { icon: alertaIcon })
-                     .addTo(map)
-                     .on('click', () => exibirDetalhes(alerta));
+                    // Criamos um círculo invisível que serve apenas para detetar o clique
+                    const marker = L.circleMarker([-15.7938, -47.8827], {
+                        radius: 12,
+                        fillColor: "transparent",
+                        color: "transparent", 
+                        interactive: true
+                    }).addTo(map);
+
+                    // Vinculamos o emoji 🔅 como um texto simples (Tooltip)
+                    marker.bindTooltip("🔅", {
+                        permanent: true, 
+                        direction: "center",
+                        className: "emoji-anchor"
+                    }).openTooltip();
+                    
+                    marker.on('click', () => exibirDetalhes(alerta));
                 });
-            } catch (err) {}
+            } catch (err) { console.log("Erro ao carregar"); }
         }
 
-        function exibirDetalhes(alerta) {
-            document.getElementById('conteudo-alerta').innerHTML = `
-                <h3>${alerta.title ? alerta.title[0] : "Alerta"}</h3>
-                <p>${alerta.description ? alerta.description[0] : ""}</p>
-            `;
-            document.getElementById('painel-alerta').style.bottom = "0";
-        }
-
-        function fecharPainel() {
-            document.getElementById('painel-alerta').style.bottom = "-60%";
-        }
-
-        carregarAlertas();
-    </script>
-</body>
-</html>
+        async function buscar() {
+            const cidade = document.getElementById('cityInput').value;
+            if (!cidade) return;
+            const resp = await fetch(`https://nominatim.openstreetmap.
