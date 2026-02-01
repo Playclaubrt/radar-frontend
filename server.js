@@ -7,34 +7,29 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname)));
 
-let cacheAlertas = null;
-let ultimaAtualizacao = 0;
-
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/api/alertas', async (req, res) => {
-    const agora = Date.now();
-    
-    // Se já temos alertas e faz menos de 5 minutos, manda o que está na memória
-    if (cacheAlertas && (agora - ultimaAtualizacao < 300000)) {
-        return res.json(cacheAlertas);
-    }
-
     try {
-        const response = await axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/', { timeout: 5000 });
+        const response = await axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/');
         const parser = new xml2js.Parser();
         parser.parseString(response.data, (err, result) => {
-            if (!err && result.rss.channel[0].item) {
-                cacheAlertas = result.rss.channel[0].item;
-                ultimaAtualizacao = agora;
-                res.json(cacheAlertas);
-            } else {
-                res.json(cacheAlertas || []); 
-            }
+            if (err || !result.rss.channel[0].item) return res.json([]);
+            
+            const alertas = result.rss.channel[0].item.map(item => ({
+                title: item.title[0],
+                description: item.description[0],
+                pubDate: item.pubDate[0],
+                link: item.link[0],
+                // Captura a área (polygon) ou ponto (point) do GeoRSS
+                polygon: item['georss:polygon'] ? item['georss:polygon'][0] : null,
+                point: item['georss:point'] ? item['georss:point'][0] : null
+            }));
+            res.json(alertas);
         });
     } catch (error) {
-        res.json(cacheAlertas || []); // Se der erro, manda o último cache que funcionou
+        res.status(500).json({ erro: "Erro ao buscar dados" });
     }
 });
 
-app.listen(PORT, () => console.log(`Rodando liso na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
