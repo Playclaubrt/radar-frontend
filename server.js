@@ -5,33 +5,33 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve os arquivos HTML e CSS da raiz (onde eles estão no teu GitHub)
 app.use(express.static(path.join(__dirname)));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// Rota para pegar os alertas do INMET
 app.get('/api/alertas', async (req, res) => {
     try {
-        const response = await axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/');
+        // Busca INMET (Brasil)
+        const resInmet = await axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/');
+        // Busca NOAA (Alertas Globais/USA - Exemplo de feed geral)
+        const resNoaa = await axios.get('https://www.nhc.noaa.gov/index-at.xml');
+
         const parser = new xml2js.Parser();
         
-        parser.parseString(response.data, (err, result) => {
-            if (err) {
-                res.status(500).send("Erro ao processar XML");
-            } else {
-                // Envia a lista de itens do RSS para o Frontend
-                const alertas = result.rss.channel[0].item || [];
-                res.json(alertas);
-            }
+        const parseXml = (xml) => new Promise((resolve) => {
+            parser.parseString(xml, (err, result) => {
+                resolve(result?.rss?.channel[0]?.item || result?.feed?.entry || []);
+            });
         });
+
+        const alertasInmet = await parseXml(resInmet.data);
+        const alertasNoaa = await parseXml(resNoaa.data);
+
+        // Une os dois e manda para o site
+        res.json([...alertasInmet, ...alertasNoaa]);
     } catch (error) {
-        res.status(500).send("Erro ao procurar alertas no INMET");
+        res.status(500).send("Erro ao buscar fontes");
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Servidor a rodar na porta ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
