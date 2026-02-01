@@ -1,21 +1,15 @@
-body, html {
-    margin: 0; padding: 0; height: 100%; width: 100%;
-    font-family: sans-serif; overflow: hidden;
-}
-
+body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; }
 
 #search-container {
     position: absolute; top: 15px; left: 15px; right: 15px;
     z-index: 1000; background: white; display: flex;
-    padding: 10px; border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
-
 #search-container input { flex: 1; border: none; outline: none; font-size: 16px; }
 #search-container button { background: none; border: none; font-size: 20px; }
 
-.emoji-icon { font-size: 24px; text-align: center; }
+.emoji-icon { font-size: 24px; text-align: center; line-height: 30px; }
 
 #painel-alerta {
     position: fixed; bottom: -60%; left: 0; width: 100%; height: 55%;
@@ -25,16 +19,6 @@ body, html {
     box-sizing: border-box; box-shadow: 0 -5px 25px rgba(0,0,0,0.2);
     overflow-y: auto;
 }
-
 #painel-alerta.active { bottom: 0; }
-
-.drag-handle {
-    width: 40px; height: 5px; background: #ccc;
-    border-radius: 10px; margin: -10px auto 15px auto;
-}
-
-.close-btn {
-    position: absolute; top: 15px; right: 20px;
-    background: #f0f0f0; border: none; border-radius: 50%;
-    width: 30px; height: 30px; font-weight: bold;
-}
+.drag-handle { width: 40px; height: 5px; background: #ccc; border-radius: 10px; margin: -10px auto 15px auto; }
+.close-btn { position: absolute; top: 15px; right: 20px; background: #f0f0f0; border: none; border-radius: 50%; width: 30px; height: 30px; font-weight: bold; }
