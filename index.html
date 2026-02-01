@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapa de Alertas 🌥️</title>
+    <title>Monitor Global</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
+        <input type="text" id="cityInput" placeholder="Pesquisar...">
         <button onclick="buscar()">🔍</button>
     </div>
 
@@ -25,62 +25,59 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map', {
-            minZoom: 3, 
+            minZoom: 2, 
             maxZoom: 17,
             zoomControl: false,
             preferCanvas: true
-        }).setView([-15.7938, -47.8827], 4);
+        }).setView([-15.7938, -47.8827], 3);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // Novo emoji atualizado aqui 🌥️
-        const alertaIcon = L.divIcon({
-            html: '<div class="emoji-icon">🌥️</div>',
-            className: 'custom-icon',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        });
+        // Definição dos Ícones
+        const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [30, 30] });
+        const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [30, 30] });
 
         async function carregarAlertas() {
             try {
                 const res = await fetch('/api/alertas');
-                const alertas = await res.json();
+                const data = await res.json();
                 
-                alertas.forEach(alerta => {
-                    // Marcador fixo em Brasília para teste
-                    const marker = L.marker([-15.7938, -47.8827], {icon: alertaIcon}).addTo(map);
-                    
-                    marker.on('click', () => {
-                        exibirDetalhes(alerta);
-                    });
+                // Brasília para INMET
+                data.inmet.forEach(alerta => {
+                    L.marker([-15.7938, -47.8827], {icon: iconInmet})
+                     .addTo(map)
+                     .on('click', () => exibirDetalhes(alerta, "INMET"));
                 });
-            } catch (err) { console.log("Erro carregar"); }
+
+                // Washington D.C. para NOAA
+                data.noaa.forEach(alerta => {
+                    L.marker([38.8951, -77.0364], {icon: iconNoaa})
+                     .addTo(map)
+                     .on('click', () => exibirDetalhes(alerta, "NOAA"));
+                });
+
+            } catch (err) { console.log("Erro"); }
         }
 
-        async function buscar() {
-            const cidade = document.getElementById('cityInput').value;
-            if (!cidade) return;
-            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
-            const data = await resp.json();
-            if(data.length > 0) map.setView([data[0].lat, data[0].lon], 17);
-        }
+        function exibirDetalhes(alerta, fonte) {
+            const titulo = alerta.title ? (Array.isArray(alerta.title) ? alerta.title[0] : alerta.title) : "Aviso";
+            const desc = alerta.description ? (Array.isArray(alerta.description) ? alerta.description[0] : alerta.description) : "Sem descrição.";
 
-        function exibirDetalhes(alerta) {
-            const conteudo = document.getElementById('conteudo-alerta');
-            // Trata títulos diferentes da NOAA/INMET
-            const titulo = alerta.title ? (Array.isArray(alerta.title) ? alerta.title[0] : alerta.title) : "Alerta";
-            const desc = alerta.description ? (Array.isArray(alerta.description) ? alerta.description[0] : alerta.description) : "";
-
-            conteudo.innerHTML = `
+            document.getElementById('conteudo-alerta').innerHTML = `
+                <small style="color:blue">Fonte: ${fonte}</small>
                 <h2>${titulo}</h2>
                 <hr>
-                <div style="margin-top:15px;">${desc}</div>
+                <div style="margin-top:10px">${desc}</div>
             `;
             document.getElementById('painel-alerta').classList.add('active');
         }
 
-        function fecharPainel() {
-            document.getElementById('painel-alerta').classList.remove('active');
+        function fecharPainel() { document.getElementById('painel-alerta').classList.remove('active'); }
+        async function buscar() {
+            const v = document.getElementById('cityInput').value;
+            const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${v}`);
+            const d = await r.json();
+            if(d.length > 0) map.setView([d[0].lat, d[0].lon], 17);
         }
 
         carregarAlertas();
