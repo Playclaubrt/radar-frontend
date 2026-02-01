@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapa de Alertas</title>
+    <title>Mapa de Alertas 🌥️</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
@@ -31,12 +31,11 @@
             preferCanvas: true
         }).setView([-15.7938, -47.8827], 4);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+        // Novo emoji atualizado aqui 🌥️
         const alertaIcon = L.divIcon({
-            html: '<div class="emoji-icon">🔅</div>',
+            html: '<div class="emoji-icon">🌥️</div>',
             className: 'custom-icon',
             iconSize: [30, 30],
             iconAnchor: [15, 15]
@@ -48,16 +47,14 @@
                 const alertas = await res.json();
                 
                 alertas.forEach(alerta => {
-                    // Marcador fixo em Brasília para teste (como estava antes)
+                    // Marcador fixo em Brasília para teste
                     const marker = L.marker([-15.7938, -47.8827], {icon: alertaIcon}).addTo(map);
                     
                     marker.on('click', () => {
                         exibirDetalhes(alerta);
                     });
                 });
-            } catch (err) {
-                console.log("Erro ao carregar alertas.");
-            }
+            } catch (err) { console.log("Erro carregar"); }
         }
 
         async function buscar() {
@@ -65,23 +62,21 @@
             if (!cidade) return;
             const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
             const data = await resp.json();
-            if(data.length > 0) {
-                map.setView([data[0].lat, data[0].lon], 17);
-            }
+            if(data.length > 0) map.setView([data[0].lat, data[0].lon], 17);
         }
 
         function exibirDetalhes(alerta) {
-            const painel = document.getElementById('painel-alerta');
             const conteudo = document.getElementById('conteudo-alerta');
-            
+            // Trata títulos diferentes da NOAA/INMET
+            const titulo = alerta.title ? (Array.isArray(alerta.title) ? alerta.title[0] : alerta.title) : "Alerta";
+            const desc = alerta.description ? (Array.isArray(alerta.description) ? alerta.description[0] : alerta.description) : "";
+
             conteudo.innerHTML = `
-                <h2>${alerta.title ? alerta.title[0] : "Alerta"}</h2>
-                <p style="color: #666;">Data: ${alerta.pubDate ? alerta.pubDate[0] : ""}</p>
+                <h2>${titulo}</h2>
                 <hr>
-                <div style="margin-top:15px;">${alerta.description ? alerta.description[0] : ""}</div>
+                <div style="margin-top:15px;">${desc}</div>
             `;
-            
-            painel.classList.add('active');
+            document.getElementById('painel-alerta').classList.add('active');
         }
 
         function fecharPainel() {
