@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
-    <title>Mapa de Alertas</title>
+    <title>Mapa Ultra Light</title>
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Procurar cidade...">
+        <input type="text" id="cityInput" placeholder="Cidade...">
         <button onclick="buscar()">🔍</button>
     </div>
 
@@ -23,19 +23,23 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // preferCanvas: desenha tudo numa camada gráfica única (muito menos RAM)
+        // CONFIGURAÇÃO RADICAL PARA ECONOMIA DE RAM
         const map = L.map('map', {
             minZoom: 3, 
             maxZoom: 17,
             zoomControl: false,
-            preferCanvas: true,
-            tap: true // Melhora o clique em dispositivos móveis
+            preferCanvas: true,     // Renderiza em tela única
+            inertia: false,         // Para de processar assim que solta o dedo
+            fadeAnimation: false,   // Remove transparências pesadas
+            zoomAnimation: false,   // Remove o efeito de "esticar" o mapa no zoom
+            markerZoomAnimation: false
         }).setView([-15.7938, -47.8827], 4);
 
-        // Tiles do CartoDB: Mais leves e com menos detalhes que o OSM padrão
+        // Tiles do CartoDB Positron (Cores sólidas, menos processamento de imagem)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             updateWhenIdle: true,
-            keepBuffer: 0
+            keepBuffer: 0,
+            noWrap: true
         }).addTo(map);
 
         async function carregarAlertas() {
@@ -44,15 +48,16 @@
                 const alertas = await res.json();
                 
                 alertas.forEach(alerta => {
-                    // Criamos um círculo invisível que serve apenas para detetar o clique
+                    // Círculo vetorial (desenhado via Canvas, quase 0 RAM)
                     const marker = L.circleMarker([-15.7938, -47.8827], {
-                        radius: 12,
-                        fillColor: "transparent",
+                        radius: 10,
+                        fillColor: "#ff9800",
                         color: "transparent", 
+                        fillOpacity: 0.1, // Quase invisível para servir de base
                         interactive: true
                     }).addTo(map);
 
-                    // Vinculamos o emoji 🔅 como um texto simples (Tooltip)
+                    // Emoji como texto simples
                     marker.bindTooltip("🔅", {
                         permanent: true, 
                         direction: "center",
@@ -61,10 +66,35 @@
                     
                     marker.on('click', () => exibirDetalhes(alerta));
                 });
-            } catch (err) { console.log("Erro ao carregar"); }
+            } catch (err) {}
         }
 
         async function buscar() {
             const cidade = document.getElementById('cityInput').value;
             if (!cidade) return;
-            const resp = await fetch(`https://nominatim.openstreetmap.
+            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
+            const data = await resp.json();
+            if(data.length > 0) {
+                // Pulo seco para o local (sem animação de deslize)
+                map.setView([data[0].lat, data[0].lon], 17, { animate: false });
+            }
+        }
+
+        function exibirDetalhes(alerta) {
+            const conteudo = document.getElementById('conteudo-alerta');
+            conteudo.innerHTML = `
+                <h3>${alerta.title ? alerta.title[0] : "Alerta"}</h3>
+                <p style="font-size:0.8rem; color:grey;">${alerta.pubDate ? alerta.pubDate[0] : ""}</p>
+                <div class="desc-scroll">${alerta.description ? alerta.description[0] : ""}</div>
+            `;
+            document.getElementById('painel-alerta').style.bottom = "0";
+        }
+
+        function fecharPainel() {
+            document.getElementById('painel-alerta').style.bottom = "-60%";
+        }
+
+        carregarAlertas();
+    </script>
+</body>
+</html>
