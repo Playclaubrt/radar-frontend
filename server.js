@@ -5,31 +5,33 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Serve os arquivos HTML e CSS da raiz (onde eles estão no teu GitHub)
 app.use(express.static(path.join(__dirname)));
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
+// Rota para pegar os alertas do INMET
 app.get('/api/alertas', async (req, res) => {
     try {
         const response = await axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/');
         const parser = new xml2js.Parser();
+        
         parser.parseString(response.data, (err, result) => {
-            if (err || !result.rss.channel[0].item) return res.json([]);
-            
-            const alertas = result.rss.channel[0].item.map(item => ({
-                title: item.title[0],
-                description: item.description[0],
-                pubDate: item.pubDate[0],
-                link: item.link[0],
-                // Captura a área (polygon) ou ponto (point) do GeoRSS
-                polygon: item['georss:polygon'] ? item['georss:polygon'][0] : null,
-                point: item['georss:point'] ? item['georss:point'][0] : null
-            }));
-            res.json(alertas);
+            if (err) {
+                res.status(500).send("Erro ao processar XML");
+            } else {
+                // Envia a lista de itens do RSS para o Frontend
+                const alertas = result.rss.channel[0].item || [];
+                res.json(alertas);
+            }
         });
     } catch (error) {
-        res.status(500).json({ erro: "Erro ao buscar dados" });
+        res.status(500).send("Erro ao procurar alertas no INMET");
     }
 });
 
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Servidor a rodar na porta ${PORT}`);
+});
