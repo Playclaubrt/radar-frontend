@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monitor de Alertas Brasil</title>
+    <title>Mapa de Alertas</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Pesquisar local...">
+        <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
         <button onclick="buscar()">🔍</button>
     </div>
 
@@ -31,7 +31,9 @@
             preferCanvas: true
         }).setView([-15.7938, -47.8827], 4);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
         const alertaIcon = L.divIcon({
             html: '<div class="emoji-icon">🔅</div>',
@@ -46,35 +48,16 @@
                 const alertas = await res.json();
                 
                 alertas.forEach(alerta => {
-                    let location;
-
-                    // Se tiver polígono, desenha a área
-                    if (alerta.polygon) {
-                        const coords = alerta.polygon.trim().split(/\s+/);
-                        const latlngs = [];
-                        for (let i = 0; i < coords.length; i += 2) {
-                            latlngs.push([parseFloat(coords[i]), parseFloat(coords[i+1])]);
-                        }
-                        const area = L.polygon(latlngs, {
-                            color: '#ff9800', weight: 2, fillOpacity: 0.3
-                        }).addTo(map);
-                        
-                        location = area.getBounds().getCenter();
-                        area.on('click', () => exibirDetalhes(alerta));
-                    } 
-                    // Se for apenas um ponto
-                    else if (alerta.point) {
-                        const p = alerta.point.trim().split(/\s+/);
-                        location = [parseFloat(p[0]), parseFloat(p[1])];
-                    }
-
-                    if (location) {
-                        L.marker(location, {icon: alertaIcon})
-                         .addTo(map)
-                         .on('click', () => exibirDetalhes(alerta));
-                    }
+                    // Marcador fixo em Brasília para teste (como estava antes)
+                    const marker = L.marker([-15.7938, -47.8827], {icon: alertaIcon}).addTo(map);
+                    
+                    marker.on('click', () => {
+                        exibirDetalhes(alerta);
+                    });
                 });
-            } catch (err) { console.log("Erro ao carregar alertas"); }
+            } catch (err) {
+                console.log("Erro ao carregar alertas.");
+            }
         }
 
         async function buscar() {
@@ -82,17 +65,23 @@
             if (!cidade) return;
             const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
             const data = await resp.json();
-            if(data.length > 0) map.setView([data[0].lat, data[0].lon], 17);
+            if(data.length > 0) {
+                map.setView([data[0].lat, data[0].lon], 17);
+            }
         }
 
         function exibirDetalhes(alerta) {
-            document.getElementById('conteudo-alerta').innerHTML = `
-                <h2>${alerta.title}</h2>
-                <p style="color: grey; font-size: 0.8rem;">${alerta.pubDate}</p>
+            const painel = document.getElementById('painel-alerta');
+            const conteudo = document.getElementById('conteudo-alerta');
+            
+            conteudo.innerHTML = `
+                <h2>${alerta.title ? alerta.title[0] : "Alerta"}</h2>
+                <p style="color: #666;">Data: ${alerta.pubDate ? alerta.pubDate[0] : ""}</p>
                 <hr>
-                <div style="margin-top:15px; font-size: 0.95rem;">${alerta.description}</div>
+                <div style="margin-top:15px;">${alerta.description ? alerta.description[0] : ""}</div>
             `;
-            document.getElementById('painel-alerta').classList.add('active');
+            
+            painel.classList.add('active');
         }
 
         function fecharPainel() {
