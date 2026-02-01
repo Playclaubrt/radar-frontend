@@ -1,31 +1,37 @@
 body, html {
     margin: 0; padding: 0; height: 100%; width: 100%;
     overflow: hidden; font-family: sans-serif;
+    background-color: #e0e0e0;
 }
 
-#map { height: 100vh; width: 100%; background: #e0e0e0; }
+#map { 
+    height: 100vh; 
+    width: 100%; 
+    contain: strict; /* Isola o mapa do resto do sistema */
+}
+
+/* Força o navegador a renderizar imagens de forma rápida, sem suavização */
+.leaflet-tile-container img {
+    image-rendering: optimizeSpeed;
+}
 
 #search-container {
     position: absolute; top: 10px; left: 10px; right: 10px;
     z-index: 1000; background: white; padding: 8px;
-    border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     display: flex;
 }
 
 #search-container input { flex: 1; border: none; outline: none; font-size: 16px; }
-#search-container button { background: none; border: none; font-size: 18px; }
 
-/* Estilo para o emoji não pesar como um objeto */
 .emoji-anchor {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    font-size: 22px !important;
+    font-size: 20px !important;
     padding: 0 !important;
-    pointer-events: none; /* Deixa o clique passar para o círculo invisível */
 }
 
-/* Painel Inferior */
 #painel-alerta {
     position: fixed;
     bottom: -60%;
@@ -34,18 +40,22 @@ body, html {
     height: 55%;
     background: white;
     z-index: 2000;
-    transition: bottom 0.3s ease-out;
+    transition: bottom 0.2s linear; /* Transição mais curta e direta */
     padding: 20px;
     box-sizing: border-box;
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -3px 15px rgba(0,0,0,0.1);
+    border-radius: 15px 15px 0 0;
+    will-change: bottom; /* Prepara o hardware antes do movimento */
+}
+
+.desc-scroll {
+    height: 70%;
     overflow-y: auto;
-    will-change: bottom; /* Melhora a performance da animação no telemóvel */
+    margin-top: 10px;
+    font-size: 0.9rem;
+    line-height: 1.4;
 }
 
 .drag-handle {
-    width: 40px; height: 4px; background: #ddd;
-    border-radius: 2px; margin: -10px auto 15px auto;
+    width: 30px; height: 4px; background: #eee;
+    margin: -10px auto 10px auto;
 }
-
-h3 { margin: 0; color: #333; font-size: 1.1rem; }
