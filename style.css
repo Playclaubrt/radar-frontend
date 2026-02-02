@@ -1,71 +1,86 @@
-/* Configuração Base */
+/* RESET E BASE */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', Roboto, sans-serif; background: #000; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #000; overflow: hidden; }
 
-/* Top Bar Adaptativo */
+/* HEADER */
 #top-bar {
     position: absolute; top: 0; left: 0; width: 100%; height: 60px;
     background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 20px; z-index: 2000; color: white;
 }
-.logo { font-size: 1.5rem; font-weight: bold; font-style: italic; color: #ff3b3b; }
-.search-box { display: flex; background: #333; border-radius: 8px; padding: 5px 10px; width: 40%; }
-.search-box input { background: none; border: none; color: white; width: 100%; outline: none; }
-.search-box button { background: none; border: none; cursor: pointer; }
+.logo { font-size: 1.5rem; font-weight: bold; font-style: italic; color: #ff3b3b; text-transform: uppercase; }
+.search-box { display: flex; background: #333; border-radius: 8px; padding: 5px 10px; width: 40%; max-width: 400px; }
+.search-box input { background: none; border: none; color: white; width: 100%; outline: none; font-size: 14px; }
+.search-box button { background: none; border: none; cursor: pointer; font-size: 16px; }
 
-/* Mapa */
-#map { height: 100vh; width: 100vw; }
+/* MAPA */
+#map { height: 100vh; width: 100vw; z-index: 1; }
 
-/* Painel Fullscreen (Responsivo) */
+/* PAINEL CLIMA */
 #painel-full {
     position: fixed; top: 100%; left: 0; width: 100%; height: 100%;
-    z-index: 3000; transition: top 0.5s ease-in-out;
-    display: flex; justify-content: center; align-items: center; padding: 20px;
+    z-index: 3000; transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; justify-content: center; align-items: flex-start; 
+    padding: 80px 20px 20px 20px; overflow-y: auto;
 }
 #painel-full.active { top: 0; }
-.btn-fechar-full { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2rem; border-radius: 50%; width: 50px; height: 50px; }
 
-/* Conteúdo Dinâmico */
-.container-info { width: 100%; max-width: 900px; color: white; }
-.temp-big { font-size: clamp(4rem, 15vw, 8rem); font-weight: 800; line-height: 1; }
-.cidade { font-size: clamp(1.2rem, 4vw, 2.5rem); opacity: 0.9; }
+.btn-fechar-full {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.2); border: none;
+    color: white; font-size: 1.5rem; border-radius: 50%;
+    width: 45px; height: 45px; cursor: pointer; z-index: 3001;
+}
 
-/* 14 Dias Scroll */
+/* CONTEÚDO */
+.container-info { width: 100%; max-width: 800px; color: white; text-align: center; }
+.temp-big { font-size: clamp(4rem, 18vw, 8rem); font-weight: 800; margin: 10px 0; }
+.cidade { font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 300; }
+.nuvem-tag { background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 20px; display: inline-block; margin-bottom: 20px; }
+
+/* SCROLL HORIZONTAL (CORRIGIDO) */
 .semana-scroll {
-    display: flex; gap: 15px; overflow-x: auto; padding: 20px 0;
-    scrollbar-width: none; -ms-overflow-style: none;
+    display: flex; 
+    flex-direction: row;
+    overflow-x: auto !important; 
+    overflow-y: hidden;
+    width: 100%;
+    gap: 12px;
+    padding: 20px 5px;
+    margin: 10px 0;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
 }
-.semana-scroll::-webkit-scrollbar { display: none; }
+.semana-scroll::-webkit-scrollbar { display: none; } /* Chrome/Safari/Tizen */
+
 .dia-card {
-    min-width: 80px; background: rgba(255,255,255,0.1);
-    padding: 15px; border-radius: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.1);
+    flex: 0 0 auto; /* IMPEDE QUE O CARD SEJA ESMAGADO */
+    min-width: 85px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px 10px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Grid de Status (Vento, Pressão, etc) */
+/* STATS GRID */
 .grid-stats {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 15px; width: 100%; margin-top: 20px;
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin-top: 20px;
 }
-.stat { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; font-size: 0.9rem; }
-.stat b { display: block; font-size: 1.2rem; margin-top: 5px; }
+.stat { background: rgba(0,0,0,0.25); padding: 15px; border-radius: 15px; font-size: 0.85rem; }
+.stat b { display: block; font-size: 1.1rem; margin-top: 5px; color: #fff; }
 
-/* AJUSTES ESPECÍFICOS POR DISPOSITIVO */
-
-/* Celular */
+/* ADAPTAÇÕES DISPOSITIVOS */
 @media (max-width: 600px) {
-    .search-box { width: 60%; }
+    .search-box { width: 70%; }
     .grid-stats { grid-template-columns: 1fr 1fr; }
+    #painel-full { padding-top: 60px; }
 }
 
-/* TV e Telas Grandes (Console/PC) */
 @media (min-width: 1200px) {
-    .container-info { padding: 40px; background: rgba(0,0,0,0.2); border-radius: 30px; }
+    .container-info { background: rgba(0,0,0,0.1); padding: 40px; border-radius: 40px; }
     .dia-card { min-width: 100px; }
-    .logo { font-size: 2.5rem; }
-}
-
-/* TV TIZEN / Navegadores de Console (Otimização de Performance) */
-@media (hover: none) and (pointer: coarse) {
-    .btn-fechar-full { width: 70px; height: 70px; } /* Botão maior para controle remoto/touch */
 }
