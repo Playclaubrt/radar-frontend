@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clima Radar Pro</title>
+    <title>Monitor Clima Global</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Pesquisar local...">
+        <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
         <button onclick="buscar()">🔍</button>
     </div>
 
@@ -39,22 +39,22 @@
 
         map.on('click', async function(e) {
             const { lat, lng } = e.latlng;
-            abrirPainelFull("<div class='loader'></div>", "linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)");
+            abrirPainelFull("<h3>Carregando...</h3>", "linear-gradient(180deg, #2c3e50 0%, #000 100%)");
 
             try {
                 const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
                 const data = await res.json();
                 
-                const nome = data.geo.address.city || data.geo.address.town || data.geo.address.state || "Local selecionado";
                 const temp = data.clima.current.temperature_2m;
                 const code = data.clima.current.weather_code;
+                const nome = data.geo.address.city || data.geo.address.town || data.geo.address.state || "Região";
 
                 let bg = "linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)"; 
                 if (temp > 30) bg = "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)";
                 if (code >= 71) bg = "linear-gradient(180deg, #cfd9df 0%, #e2ebf0 100%)";
 
-                const dias = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
                 let prevHTML = `<div class='semana-grid'>`;
+                const dias = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
                 data.clima.daily.weather_code.slice(1, 6).forEach((c, i) => {
                     const d = new Date(data.clima.daily.time[i+1]);
                     prevHTML += `<div><b>${dias[d.getDay()]}</b><br>${getClimaEmoji(c)}</div>`;
@@ -72,7 +72,7 @@
                     </div>
                 `;
                 abrirPainelFull(html, bg);
-            } catch (err) { abrirPainelFull("Erro ao carregar dados."); }
+            } catch (err) { abrirPainelFull("<h2>Erro ao carregar</h2>", "#e74c3c"); }
         });
 
         async function carregarAlertas() {
@@ -81,11 +81,11 @@
                 const data = await res.json();
                 if (data.inmet.length > 0) {
                     L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map)
-                    .on('click', (ev) => { L.DomEvent.stopPropagation(ev); exibirAlertas(data.inmet, "INMET Brasil"); });
+                    .on('click', (ev) => { L.DomEvent.stopPropagation(ev); exibirAlertaLista(data.inmet, "INMET Brasil"); });
                 }
                 if (data.noaa.length > 0) {
                     L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map)
-                    .on('click', (ev) => { L.DomEvent.stopPropagation(ev); exibirAlertasNoaa(data.noaa); });
+                    .on('click', (ev) => { L.DomEvent.stopPropagation(ev); exibirAlertaListaNoaa(data.noaa); });
                 }
             } catch (e) {}
         }
@@ -99,15 +99,15 @@
 
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
-        function exibirAlertas(lista, fonte) {
-            let h = `<h2>${fonte}</h2><div style='text-align:left; overflow-y:auto; height:70vh; padding:10px;'>`;
+        function exibirAlertaLista(lista, fonte) {
+            let h = `<h2>${fonte}</h2><div style='text-align:left; overflow-y:auto; height:70vh; width:100%'>`;
             lista.forEach(a => h += `<p><b>${a.title[0]}</b><br>${a.description[0]}</p><hr>`);
             h += `</div>`;
             abrirPainelFull(h, "#333");
         }
 
-        function exibirAlertasNoaa(lista) {
-            let h = `<h2>NOAA EUA</h2><div style='text-align:left; overflow-y:auto; height:70vh; padding:10px;'>`;
+        function exibirAlertaListaNoaa(lista) {
+            let h = `<h2>NOAA EUA</h2><div style='text-align:left; overflow-y:auto; height:70vh; width:100%'>`;
             lista.forEach(a => h += `<p><b>${a.properties.event}</b><br>${a.properties.headline || a.properties.description}</p><hr>`);
             h += `</div>`;
             abrirPainelFull(h, "#2c3e50");
