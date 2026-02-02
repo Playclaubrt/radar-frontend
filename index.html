@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monitor Global</title>
+    <title>Monitor Clima 24h</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
@@ -41,30 +41,39 @@
                 const res = await fetch('/api/alertas');
                 const data = await res.json();
                 
-                // Marcador Brasil (Brasília)
-                if (data.inmet.length > 0) {
-                    L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map)
-                     .on('click', () => {
-                        let h = `<h3>Alertas INMET (${data.inmet.length})</h3><hr>`;
+                console.log("Dados carregados do API:", data); // Verifique o console do navegador (F12)
+
+                // Lógica para o INMET (Brasil - Brasília)
+                if (data.inmet && Array.isArray(data.inmet) && data.inmet.length > 0) {
+                    const markerBR = L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map);
+                    markerBR.on('click', () => {
+                        let h = `<h3>Alertas INMET Brasil (${data.inmet.length})</h3><hr>`;
                         data.inmet.forEach(a => {
-                            h += `<div style="margin-bottom:15px"><strong>${a.title[0]}</strong><br>${a.description[0]}</div><hr>`;
+                            const titulo = a.title ? a.title[0] : "Sem título";
+                            const desc = a.description ? a.description[0] : "Sem descrição";
+                            h += `<div style="margin-bottom:15px"><strong>${titulo}</strong><p>${desc}</p></div><hr>`;
                         });
                         abrirPainel(h);
-                     });
+                    });
                 }
 
-                // Marcador EUA (Washington)
-                if (data.noaa.length > 0) {
-                    L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map)
-                     .on('click', () => {
-                        let h = `<h3>Alertas NOAA (${data.noaa.length})</h3><hr>`;
+                // Lógica para a NOAA (EUA - Washington)
+                if (data.noaa && Array.isArray(data.noaa) && data.noaa.length > 0) {
+                    const markerUS = L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map);
+                    markerUS.on('click', () => {
+                        let h = `<h3>Alertas NOAA EUA (${data.noaa.length})</h3><hr>`;
                         data.noaa.forEach(a => {
-                            h += `<div style="margin-bottom:15px"><strong>${a.properties.event}</strong><br>${a.properties.headline || a.properties.description}</div><hr>`;
+                            const p = a.properties;
+                            const evento = p.event || "Alerta Climático";
+                            const texto = p.headline || p.description || "Verifique no site da NOAA";
+                            h += `<div style="margin-bottom:15px"><strong>${evento}</strong><p>${texto}</p></div><hr>`;
                         });
                         abrirPainel(h);
-                     });
+                    });
                 }
-            } catch (e) { console.error("Erro ao carregar"); }
+            } catch (e) { 
+                console.error("Erro ao desenhar marcadores:", e); 
+            }
         }
 
         function abrirPainel(html) {
@@ -72,10 +81,13 @@
             document.getElementById('painel-alerta').classList.add('active');
         }
 
-        function fecharPainel() { document.getElementById('painel-alerta').classList.remove('active'); }
+        function fecharPainel() { 
+            document.getElementById('painel-alerta').classList.remove('active'); 
+        }
         
         async function buscar() {
             const v = document.getElementById('cityInput').value;
+            if(!v) return;
             const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${v}`);
             const d = await r.json();
             if(d.length > 0) map.setView([d[0].lat, d[0].lon], 15);
