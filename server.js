@@ -20,7 +20,7 @@ app.get('/api/alertas', async (req, res) => {
         const [resInmet, resNoaa] = await Promise.allSettled([
             axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/', { timeout: 10000 }),
             axios.get('https://api.weather.gov/alerts/active', {
-                headers: { 'User-Agent': '(MonitorGlobal, clima@monitor.com)' },
+                headers: { 'User-Agent': '(MonitorClima, contato@monitor.com)' },
                 timeout: 10000 
             })
         ]);
@@ -31,7 +31,7 @@ app.get('/api/alertas', async (req, res) => {
 
         cacheAlertas = { data: { inmet, noaa }, last: agora };
         res.json(cacheAlertas.data);
-    } catch (e) { res.json(cacheAlertas.data || { inmet: [], noaa: [] }); }
+    } catch (e) { res.json({ inmet: [], noaa: [] }); }
 });
 
 app.get('/api/clima-clique', async (req, res) => {
@@ -46,7 +46,7 @@ app.get('/api/clima-clique', async (req, res) => {
 
     try {
         const [clima, ar, geo] = await Promise.allSettled([
-            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,visibility,wind_speed_10m&daily=weather_code,sunrise,sunset&timezone=auto`),
+            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,visibility,wind_speed_10m&daily=weather_code,sunrise,sunset&forecast_days=14&timezone=auto`),
             axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`),
             axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
         ]);
@@ -64,4 +64,4 @@ app.get('/api/clima-clique', async (req, res) => {
     } catch (e) { res.status(500).json({ erro: "Falha" }); }
 });
 
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor na porta ${PORT}`));
