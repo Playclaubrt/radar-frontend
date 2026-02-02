@@ -46,4 +46,22 @@ app.get('/api/clima-clique', async (req, res) => {
 
     try {
         const [clima, ar, geo] = await Promise.allSettled([
-            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m
+            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,visibility,wind_speed_10m&daily=weather_code,sunrise,sunset&timezone=auto`),
+            axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`),
+            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+        ]);
+
+        const total = {
+            clima: clima.status === 'fulfilled' ? clima.value.data : null,
+            ar: ar.status === 'fulfilled' ? ar.value.data : { current: { european_aqi: '--' } },
+            geo: geo.status === 'fulfilled' ? geo.value.data : { address: { city: "Localização" } }
+        };
+
+        if (total.clima) {
+            cacheClimaLocal.set(key, { data: total, last: agora });
+            res.json(total);
+        } else { throw new Error("Erro"); }
+    } catch (e) { res.status(500).json({ erro: "Falha" }); }
+});
+
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
