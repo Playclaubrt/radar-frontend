@@ -23,7 +23,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { minZoom: 2, maxZoom: 17, zoomControl: false, preferCanvas: true }).setView([-15.7938, -47.8827], 4);
+        const map = L.map('map', { minZoom: 2, maxZoom: 17, zoomControl: false }).setView([-15.7938, -47.8827], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [30, 30] });
@@ -45,7 +45,7 @@
 
         map.on('click', async function(e) {
             const { lat, lng } = e.latlng;
-            abrirPainelFull("<div class='loader'>Carregando...</div>", "linear-gradient(180deg, #2c3e50 0%, #000 100%)");
+            abrirPainelFull("<div class='loader'>Carregando 14 dias...</div>", "linear-gradient(180deg, #2c3e50 0%, #000 100%)");
 
             try {
                 const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
@@ -59,12 +59,12 @@
                 if (temp > 30) bg = "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)";
                 if (code >= 71) bg = "linear-gradient(180deg, #cfd9df 0%, #e2ebf0 100%)";
 
-                const formatTime = (t) => t.split("T")[1];
-
-                let prevHTML = `<div class='semana-grid'>`;
-                data.clima.daily.weather_code.slice(1, 6).forEach((c, i) => {
-                    const d = new Date(data.clima.daily.time[i+1]);
-                    prevHTML += `<div><b>${["DOM","SEG","TER","QUA","QUI","SEX","SAB"][d.getDay()]}</b><br>${getClimaEmoji(c)}</div>`;
+                // Previsão 14 dias Horizontal
+                let prevHTML = `<div class='semana-scroll'>`;
+                const diasNomes = ["DOM","SEG","TER","QUA","QUI","SEX","SAB"];
+                data.clima.daily.weather_code.forEach((c, i) => {
+                    const d = new Date(data.clima.daily.time[i]);
+                    prevHTML += `<div class="dia-item"><b>${diasNomes[d.getDay()]}</b><br><small>${d.getDate()}/${d.getMonth()+1}</small><br>${getClimaEmoji(c)}</div>`;
                 });
                 prevHTML += `</div>`;
 
@@ -78,13 +78,10 @@
                     <div class="info-grid">
                         <div class="info-card">💧 Umidade<b>${data.clima.current.relative_humidity_2m}%</b></div>
                         <div class="info-card">🌬️ Vento<b>${data.clima.current.wind_speed_10m} km/h</b></div>
-                        <div class="info-card">👁️ Visib.<b>${(data.clima.current.visibility/1000).toFixed(1)} km</b></div>
                         <div class="info-card">⏲️ Pressão<b>${data.clima.current.pressure_msl} hPa</b></div>
-                        <div class="info-card">🌅 Nascer<b>${formatTime(data.clima.daily.sunrise[0])}</b></div>
-                        <div class="info-card">🌇 Pôr do Sol<b>${formatTime(data.clima.daily.sunset[0])}</b></div>
+                        <div class="info-card">🌅 Nascer<b>${data.clima.daily.sunrise[0].split("T")[1]}</b></div>
+                        <div class="info-card">🌇 Pôr do Sol<b>${data.clima.daily.sunset[0].split("T")[1]}</b></div>
                         <div class="info-card">🍃 Ar (AQI)<b>${data.ar.current.european_aqi}</b></div>
-                        <div class="info-card">📍 Lat<b>${parseFloat(lat).toFixed(2)}</b></div>
-                        <div class="info-card">📍 Lon<b>${parseFloat(lng).toFixed(2)}</b></div>
                     </div>
                 `;
                 abrirPainelFull(html, bg);
@@ -104,9 +101,20 @@
             try {
                 const res = await fetch('/api/alertas');
                 const data = await res.json();
-                if (data.inmet.length > 0) L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map).on('click', (ev) => { L.DomEvent.stopPropagation(ev); exibirAlertaLista(data.inmet, "INMET"); });
-                if (data.noaa.length > 0) L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map).on('click', (ev) => { L.DomEvent.stopPropagation(ev); exibirAlertaListaNoaa(data.noaa); });
-            } catch (e) {}
+                console.log("Alertas recebidos:", data);
+                if (data.inmet && data.inmet.length > 0) {
+                    L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map).on('click', (ev) => { 
+                        L.DomEvent.stopPropagation(ev); 
+                        exibirAlertaLista(data.inmet, "Alertas INMET Brasil"); 
+                    });
+                }
+                if (data.noaa && data.noaa.length > 0) {
+                    L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map).on('click', (ev) => { 
+                        L.DomEvent.stopPropagation(ev); 
+                        exibirAlertaListaNoaa(data.noaa); 
+                    });
+                }
+            } catch (e) { console.error("Erro alertas:", e); }
         }
 
         function exibirAlertaLista(lista, fonte) {
