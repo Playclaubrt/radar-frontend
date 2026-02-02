@@ -1,47 +1,57 @@
-body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; }
-#map { height: 100vh; width: 100vw; z-index: 1; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #000; overflow: hidden; }
 
-#search-container {
-    position: absolute; top: 15px; left: 15px; right: 15px;
-    z-index: 1000; background: white; display: flex;
-    padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+#top-bar {
+    position: absolute; top: 0; left: 0; width: 100%; height: 60px;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; z-index: 2000; color: white;
 }
-#search-container input { flex: 1; border: none; outline: none; font-size: 16px; }
+.logo { font-size: 1.5rem; font-weight: bold; color: #ff3b3b; font-style: italic; }
+.search-box { display: flex; background: #222; border-radius: 8px; padding: 5px 10px; width: 40%; }
+.search-box input { background: none; border: none; color: white; width: 100%; outline: none; }
+
+#map { height: 100vh; width: 100vw; }
 
 #painel-full {
     position: fixed; top: 100%; left: 0; width: 100%; height: 100%;
-    z-index: 3000; transition: top 0.4s ease;
-    color: white; padding: 60px 20px; box-sizing: border-box;
-    display: flex; flex-direction: column; align-items: center; text-align: center;
+    z-index: 3000; transition: top 0.4s ease-out;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding-top: 70px; overflow-y: auto; /* Permite rolar a lista de dias */
 }
 #painel-full.active { top: 0; }
+.btn-fechar-full { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.8rem; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; }
 
-.btn-fechar-full {
-    position: absolute; top: 20px; right: 20px;
-    background: rgba(255,255,255,0.3); border: none;
-    color: white; font-size: 24px; width: 45px; height: 45px; border-radius: 50%;
+.container-info { width: 100%; max-width: 500px; color: white; padding: 20px; }
+.temp-big { font-size: 5rem; font-weight: 800; text-align: center; }
+.cidade { text-align: center; font-weight: 300; }
+
+.grid-stats {
+    display: flex; justify-content: space-around; 
+    background: rgba(255,255,255,0.1); padding: 15px; 
+    border-radius: 15px; margin: 20px 0;
 }
 
-.temp-principal { font-size: 5rem; font-weight: bold; }
-
-/* FOCO AQUI: O Scroll Horizontal */
-.semana-scroll {
-    display: flex; 
-    overflow-x: auto; 
-    width: 100%; 
-    gap: 15px; 
-    padding: 20px 0;
-    -webkit-overflow-scrolling: touch; /* Scroll suave mobile */
+/* ESTILO DA LISTA VERTICAL */
+.lista-previsao {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 10px;
 }
-.semana-scroll::-webkit-scrollbar { display: none; } /* Esconde barra no Chrome/Safari */
-
-.dia-item {
-    flex: 0 0 auto; /* NÃO deixa o card diminuir/esmagar */
-    min-width: 70px;
-    background: rgba(0,0,0,0.2);
-    padding: 15px 10px;
-    border-radius: 15px;
+.linha-dia {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
 }
+.txt-dia { flex: 1; font-weight: 500; }
+.txt-data { opacity: 0.6; font-size: 0.9rem; margin-right: 20px; }
+.emoji-dia { font-size: 1.5rem; width: 30px; text-align: right; }
 
-.info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; margin-top: 20px; }
-.info-card { background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px; font-size: 0.8rem; }
+/* Para telas pequenas */
+@media (max-width: 600px) {
+    .search-box { width: 60%; }
+}
