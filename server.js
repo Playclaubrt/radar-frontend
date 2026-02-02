@@ -7,13 +7,11 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname)));
 
-// Sistema de Cache
 let cacheAlertas = { data: null, last: 0 };
 let cacheClimaLocal = new Map();
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// Rota de Alertas Globais
 app.get('/api/alertas', async (req, res) => {
     const agora = Date.now();
     if (cacheAlertas.data && (agora - cacheAlertas.last < 300000)) return res.json(cacheAlertas.data);
@@ -22,7 +20,7 @@ app.get('/api/alertas', async (req, res) => {
         const [resInmet, resNoaa] = await Promise.allSettled([
             axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/', { timeout: 10000 }),
             axios.get('https://api.weather.gov/alerts/active', {
-                headers: { 'User-Agent': '(MonitorGlobal, contato@seuemail.com)' },
+                headers: { 'User-Agent': '(MonitorGlobal, clima@monitor.com)' },
                 timeout: 10000 
             })
         ]);
@@ -36,7 +34,6 @@ app.get('/api/alertas', async (req, res) => {
     } catch (e) { res.json(cacheAlertas.data || { inmet: [], noaa: [] }); }
 });
 
-// Rota de Clima Detalhado (Clique)
 app.get('/api/clima-clique', async (req, res) => {
     const { lat, lon } = req.query;
     const key = `${parseFloat(lat).toFixed(2)}|${parseFloat(lon).toFixed(2)}`;
@@ -49,24 +46,4 @@ app.get('/api/clima-clique', async (req, res) => {
 
     try {
         const [clima, ar, geo] = await Promise.allSettled([
-            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code&timezone=auto`),
-            axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`),
-            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-        ]);
-
-        const total = {
-            clima: clima.status === 'fulfilled' ? clima.value.data : null,
-            ar: ar.status === 'fulfilled' ? ar.value.data : { current: { european_aqi: '--' } },
-            geo: geo.status === 'fulfilled' ? geo.value.data : { address: { city: "Localização" } }
-        };
-
-        if (total.clima) {
-            cacheClimaLocal.set(key, { data: total, last: agora });
-            res.json(total);
-        } else {
-            throw new Error("Erro clima");
-        }
-    } catch (e) { res.status(500).json({ erro: "Falha" }); }
-});
-
-app.listen(PORT, () => console.log(`Rodando em http://localhost:${PORT}`));
+            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m
