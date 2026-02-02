@@ -7,33 +7,33 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: -app
     padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 #search-container input { flex: 1; border: none; outline: none; font-size: 16px; padding-left: 5px; }
-#search-container button { background: none; border: none; font-size: 20px; }
-
-.emoji-icon { font-size: 24px; text-align: center; line-height: 30px; }
+#search-container button { background: none; border: none; font-size: 20px; cursor: pointer; }
 
 #painel-full {
     position: fixed; top: 100%; left: 0; width: 100%; height: 100%;
     z-index: 3000; transition: top 0.4s ease-in-out;
-    color: white; padding: 40px 20px; box-sizing: border-box;
+    color: white; padding: 60px 25px 25px 25px; box-sizing: border-box;
     display: flex; flex-direction: column; align-items: center;
 }
 #painel-full.active { top: 0; }
 
 .btn-fechar-full {
     position: absolute; top: 20px; right: 20px;
-    background: rgba(255,255,255,0.25); border: none;
+    background: rgba(255,255,255,0.3); border: none;
     color: white; font-size: 24px; width: 45px; height: 45px;
-    border-radius: 50%; z-index: 3001;
+    border-radius: 50%; cursor: pointer;
 }
 
 .cidade-nome { font-size: 1.8rem; margin: 0; }
-.temp-principal { font-size: 4.5rem; font-weight: bold; margin: 10px 0; }
-.emoji-grande { font-size: 3.5rem; }
+.temp-principal { font-size: 5rem; font-weight: bold; margin: 5px 0; }
+.emoji-grande { font-size: 4rem; margin-bottom: 20px; }
 
 .semana-grid {
     display: flex; justify-content: space-around; width: 100%;
-    background: rgba(0,0,0,0.15); padding: 15px; border-radius: 20px; margin: 25px 0;
+    background: rgba(0,0,0,0.2); padding: 15px; border-radius: 20px; margin-bottom: 20px;
 }
 
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
-.info-card { background: rgba(255,255,255,0.2); padding: 15px; border-radius: 15px; }
+.info-card { background: rgba(255,255,255,0.25); padding: 15px; border-radius: 15px; text-align: center; }
+
+.emoji-icon { font-size: 24px; text-align: center; line-height: 30px; }
