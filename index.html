@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monitor Global</title>
+    <title>Monitor Global Real-Time</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Pesquisar...">
+        <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
         <button onclick="buscar()">🔍</button>
     </div>
 
@@ -24,6 +24,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Configuração inicial do Mapa
         const map = L.map('map', {
             minZoom: 2, 
             maxZoom: 17,
@@ -31,55 +32,94 @@
             preferCanvas: true
         }).setView([-15.7938, -47.8827], 3);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
-        // Definição dos Ícones
-        const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [30, 30] });
-        const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [30, 30] });
+        // Ícones com os emojis solicitados
+        const iconInmet = L.divIcon({ 
+            html: '<div class="emoji-icon">🔅</div>', 
+            className: 'custom-icon', 
+            iconSize: [30, 30] 
+        });
+        
+        const iconNoaa = L.divIcon({ 
+            html: '<div class="emoji-icon">☁️</div>', 
+            className: 'custom-icon', 
+            iconSize: [30, 30] 
+        });
 
         async function carregarAlertas() {
             try {
                 const res = await fetch('/api/alertas');
                 const data = await res.json();
                 
-                // Brasília para INMET
-                data.inmet.forEach(alerta => {
-                    L.marker([-15.7938, -47.8827], {icon: iconInmet})
-                     .addTo(map)
-                     .on('click', () => exibirDetalhes(alerta, "INMET"));
-                });
+                // --- PROCESSAR INMET (BRASIL - 🔅) ---
+                if (data.inmet && data.inmet.length > 0) {
+                    data.inmet.forEach(alerta => {
+                        L.marker([-15.7938, -47.8827], {icon: iconInmet})
+                         .addTo(map)
+                         .on('click', () => {
+                            exibirPainel(
+                                "INMET (Brasil)", 
+                                alerta.title[0], 
+                                alerta.description[0], 
+                                "#ff9800"
+                            );
+                         });
+                    });
+                }
 
-                // Washington D.C. para NOAA
-                data.noaa.forEach(alerta => {
-                    L.marker([38.8951, -77.0364], {icon: iconNoaa})
-                     .addTo(map)
-                     .on('click', () => exibirDetalhes(alerta, "NOAA"));
-                });
+                // --- PROCESSAR NOAA (EUA - ☁️ - REAL TIME) ---
+                if (data.noaa && data.noaa.length > 0) {
+                    data.noaa.forEach(alerta => {
+                        const info = alerta.properties; // Estrutura JSON da API NOAA
+                        L.marker([38.8951, -77.0364], {icon: iconNoaa})
+                         .addTo(map)
+                         .on('click', () => {
+                            exibirPainel(
+                                "NOAA Real-Time (EUA)", 
+                                info.headline || info.event, 
+                                info.description || "Sem descrição disponível.", 
+                                "#007bff"
+                            );
+                         });
+                    });
+                }
 
-            } catch (err) { console.log("Erro"); }
+            } catch (err) {
+                console.error("Erro ao carregar dados do servidor:", err);
+            }
         }
 
-        function exibirDetalhes(alerta, fonte) {
-            const titulo = alerta.title ? (Array.isArray(alerta.title) ? alerta.title[0] : alerta.title) : "Aviso";
-            const desc = alerta.description ? (Array.isArray(alerta.description) ? alerta.description[0] : alerta.description) : "Sem descrição.";
-
-            document.getElementById('conteudo-alerta').innerHTML = `
-                <small style="color:blue">Fonte: ${fonte}</small>
-                <h2>${titulo}</h2>
-                <hr>
-                <div style="margin-top:10px">${desc}</div>
+        function exibirPainel(fonte, titulo, descricao, cor) {
+            const conteudo = document.getElementById('conteudo-alerta');
+            conteudo.innerHTML = `
+                <small style="color: ${cor}; font-weight: bold; text-transform: uppercase;">${fonte}</small>
+                <h2 style="margin-top: 5px;">${titulo}</h2>
+                <hr style="border: 0; border-top: 1px solid #eee;">
+                <div style="margin-top:15px; font-size: 0.95rem; line-height: 1.5; color: #444;">
+                    ${descricao}
+                </div>
             `;
             document.getElementById('painel-alerta').classList.add('active');
         }
 
-        function fecharPainel() { document.getElementById('painel-alerta').classList.remove('active'); }
-        async function buscar() {
-            const v = document.getElementById('cityInput').value;
-            const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${v}`);
-            const d = await r.json();
-            if(d.length > 0) map.setView([d[0].lat, d[0].lon], 17);
+        function fecharPainel() {
+            document.getElementById('painel-alerta').classList.remove('active');
         }
 
+        async function buscar() {
+            const cidade = document.getElementById('cityInput').value;
+            if (!cidade) return;
+            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade}`);
+            const data = await resp.json();
+            if(data.length > 0) {
+                map.setView([data[0].lat, data[0].lon], 17);
+            }
+        }
+
+        // Inicia a busca de alertas
         carregarAlertas();
     </script>
 </body>
