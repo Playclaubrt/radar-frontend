@@ -7,43 +7,56 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname)));
 
-// Sistema de Cache
-let cacheDados = null;
-let ultimaBusca = 0;
-const INTERVALO = 1000 * 60 * 5; // Atualiza a cada 5 minutos
+let cacheAlertas = { data: null, last: 0 };
+let cacheClimaLocal = new Map();
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
+// Rota para Alertas (INMET e NOAA)
 app.get('/api/alertas', async (req, res) => {
     const agora = Date.now();
-
-    if (cacheDados && (agora - ultimaBusca < INTERVALO)) {
-        return res.json(cacheDados);
-    }
+    if (cacheAlertas.data && (agora - cacheAlertas.last < 300000)) return res.json(cacheAlertas.data);
 
     try {
-        const [resInmet, resNoaa] = await Promise.all([
-            axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/', { timeout: 10000 }),
+        const [resInmet, resNoaa] = await Promise.allSettled([
+            axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/', { timeout: 8000 }),
             axios.get('https://api.weather.gov/alerts/active', {
-                headers: { 'User-Agent': 'MonitorGlobal/1.0' },
-                timeout: 10000
+                headers: { 'User-Agent': 'MonitorClima/1.0' },
+                timeout: 8000 
             })
         ]);
 
         const parser = new xml2js.Parser();
-        const inmetJson = await new Promise(r => parser.parseString(resInmet.data, (e, res) => r(res?.rss?.channel[0]?.item || [])));
+        const inmet = resInmet.status === 'fulfilled' ? (await parser.parseStringPromise(resInmet.value.data))?.rss?.channel[0]?.item : [];
+        const noaa = resNoaa.status === 'fulfilled' ? resNoaa.value.data.features : [];
 
-        cacheDados = {
-            inmet: inmetJson, // Manda TODOS do Inmet
-            noaa: resNoaa.data.features // Manda TODOS da NOAA
-        };
-        ultimaBusca = agora;
-
-        res.json(cacheDados);
-    } catch (error) {
-        if (cacheDados) return res.json(cacheDados);
-        res.json({ inmet: [], noaa: [] });
-    }
+        cacheAlertas = { data: { inmet, noaa }, last: agora };
+        res.json(cacheAlertas.data);
+    } catch (e) { res.json(cacheAlertas.data || { inmet: [], noaa: [] }); }
 });
 
-app.listen(PORT, () => console.log("Servidor rodando com Cache"));
+// Rota de Clima por Clique (Cache de 10 minutos)
+app.get('/api/clima-clique', async (req, res) => {
+    const { lat, lon } = req.query;
+    const key = `${parseFloat(lat).toFixed(2)}|${parseFloat(lon).toFixed(2)}`;
+    const agora = Date.now();
+
+    if (cacheClimaLocal.has(key)) {
+        const c = cacheClimaLocal.get(key);
+        if (agora - c.last < 600000) return res.json(c.data);
+    }
+
+    try {
+        const [clima, ar, geo] = await Promise.all([
+            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code&timezone=auto`),
+            axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`),
+            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+        ]);
+
+        const total = { clima: clima.data, ar: ar.data, geo: geo.data };
+        cacheClimaLocal.set(key, { data: total, last: agora });
+        res.json(total);
+    } catch (e) { res.status(500).json({erro: "Falha na busca"}); }
+});
+
+app.listen(PORT, () => console.log("Servidor Online com Cache"));
