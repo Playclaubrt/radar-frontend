@@ -2,17 +2,20 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monitor Clima Master</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cloudwindz | Storm Chaser</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="search-container">
-        <input type="text" id="cityInput" placeholder="Buscar local...">
-        <button onclick="buscar()">🔍</button>
-    </div>
+    <header id="top-bar">
+        <div class="logo">Cloudwindz</div>
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Buscar cidade ou coordenada...">
+            <button onclick="buscar()">🔍</button>
+        </div>
+    </header>
 
     <div id="map"></div>
 
@@ -23,70 +26,52 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { minZoom: 2, maxZoom: 17, zoomControl: false }).setView([-15.7938, -47.8827], 4);
+        const map = L.map('map', { zoomControl: false }).setView([-15.7938, -47.8827], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [30, 30] });
-        const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [30, 30] });
-
+        // Lógica de ícones e clima simplificada para o exemplo
         function getClimaEmoji(code) {
-            const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️" };
+            const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⚡" };
             return tab[code] || "🌡️";
         }
 
-        function getNuvemTipo(code) {
-            if (code >= 95) return "Cumulonimbus";
-            if (code >= 80) return "Cumulus Congestus";
-            if (code >= 51) return "Nimbostratus";
-            if (code >= 1 && code <= 3) return "Altocumulus";
-            if (code >= 45) return "Stratus";
-            return "Céu Limpo";
-        }
-
-        map.on('click', async function(e) {
+        map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            abrirPainelFull("<div class='loader'>Carregando 14 dias...</div>", "linear-gradient(180deg, #2c3e50 0%, #000 100%)");
-
-            try {
-                const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-                const data = await res.json();
-                
-                const temp = data.clima.current.temperature_2m;
-                const code = data.clima.current.weather_code;
-                const nome = data.geo.address.city || data.geo.address.town || data.geo.address.state || "Localização";
-                
-                let bg = "linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)"; 
-                if (temp > 30) bg = "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)";
-                if (code >= 71) bg = "linear-gradient(180deg, #cfd9df 0%, #e2ebf0 100%)";
-
-                // Previsão 14 dias Horizontal
-                let prevHTML = `<div class='semana-scroll'>`;
-                const diasNomes = ["DOM","SEG","TER","QUA","QUI","SEX","SAB"];
-                data.clima.daily.weather_code.forEach((c, i) => {
-                    const d = new Date(data.clima.daily.time[i]);
-                    prevHTML += `<div class="dia-item"><b>${diasNomes[d.getDay()]}</b><br><small>${d.getDate()}/${d.getMonth()+1}</small><br>${getClimaEmoji(c)}</div>`;
-                });
-                prevHTML += `</div>`;
-
-                let html = `
-                    <h1 class="cidade-nome">${nome}</h1>
-                    <div class="temp-principal">${temp}°C</div>
-                    <div class="nuvem-status">☁️ ${getNuvemTipo(code)}</div>
-                    
-                    ${prevHTML}
-
-                    <div class="info-grid">
-                        <div class="info-card">💧 Umidade<b>${data.clima.current.relative_humidity_2m}%</b></div>
-                        <div class="info-card">🌬️ Vento<b>${data.clima.current.wind_speed_10m} km/h</b></div>
-                        <div class="info-card">⏲️ Pressão<b>${data.clima.current.pressure_msl} hPa</b></div>
-                        <div class="info-card">🌅 Nascer<b>${data.clima.daily.sunrise[0].split("T")[1]}</b></div>
-                        <div class="info-card">🌇 Pôr do Sol<b>${data.clima.daily.sunset[0].split("T")[1]}</b></div>
-                        <div class="info-card">🍃 Ar (AQI)<b>${data.ar.current.european_aqi}</b></div>
-                    </div>
-                `;
-                abrirPainelFull(html, bg);
-            } catch (err) { abrirPainelFull("<h2>Erro ao carregar</h2>", "#e74c3c"); }
+            abrirPainelFull("<div class='loader'>Obtendo dados...</div>", "#1a1a1a");
+            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            renderizarPainel(data, lat, lng);
         });
+
+        function renderizarPainel(data, lat, lng) {
+            const temp = data.clima.current.temperature_2m;
+            const code = data.clima.current.weather_code;
+            let bg = "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)";
+            if(temp > 30) bg = "linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)";
+            if(code >= 95) bg = "linear-gradient(135deg, #4b0082 0%, #000000 100%)";
+
+            let prevHTML = `<div class='semana-scroll'>`;
+            data.clima.daily.time.forEach((t, i) => {
+                const d = new Date(t);
+                prevHTML += `<div class="dia-card"><b>${d.getDate()}/${d.getMonth()+1}</b><br>${getClimaEmoji(data.clima.daily.weather_code[i])}</div>`;
+            });
+            prevHTML += `</div>`;
+
+            const html = `
+                <div class="container-info">
+                    <h1 class="cidade">${data.geo.address.city || "Região"}</h1>
+                    <div class="temp-big">${temp}°C</div>
+                    ${prevHTML}
+                    <div class="grid-stats">
+                        <div class="stat">💧 Umidade<br><b>${data.clima.current.relative_humidity_2m}%</b></div>
+                        <div class="stat">🌬️ Vento<br><b>${data.clima.current.wind_speed_10m}km/h</b></div>
+                        <div class="stat">⏲️ Pressão<br><b>${data.clima.current.pressure_msl}hPa</b></div>
+                        <div class="stat">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
+                    </div>
+                </div>
+            `;
+            abrirPainelFull(html, bg);
+        }
 
         function abrirPainelFull(html, bg) {
             const p = document.getElementById('painel-full');
@@ -96,48 +81,13 @@
         }
 
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
-
-        async function carregarAlertas() {
-            try {
-                const res = await fetch('/api/alertas');
-                const data = await res.json();
-                console.log("Alertas recebidos:", data);
-                if (data.inmet && data.inmet.length > 0) {
-                    L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map).on('click', (ev) => { 
-                        L.DomEvent.stopPropagation(ev); 
-                        exibirAlertaLista(data.inmet, "Alertas INMET Brasil"); 
-                    });
-                }
-                if (data.noaa && data.noaa.length > 0) {
-                    L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map).on('click', (ev) => { 
-                        L.DomEvent.stopPropagation(ev); 
-                        exibirAlertaListaNoaa(data.noaa); 
-                    });
-                }
-            } catch (e) { console.error("Erro alertas:", e); }
-        }
-
-        function exibirAlertaLista(lista, fonte) {
-            let h = `<h2>${fonte}</h2><div style='text-align:left; overflow-y:auto; height:70vh; width:100%'>`;
-            lista.forEach(a => h += `<p><b>${a.title[0]}</b><br>${a.description[0]}</p><hr>`);
-            h += `</div>`;
-            abrirPainelFull(h, "#333");
-        }
-
-        function exibirAlertaListaNoaa(lista) {
-            let h = `<h2>NOAA EUA</h2><div style='text-align:left; overflow-y:auto; height:70vh; width:100%'>`;
-            lista.forEach(a => h += `<p><b>${a.properties.event}</b><br>${a.properties.headline || a.properties.description}</p><hr>`);
-            h += `</div>`;
-            abrirPainelFull(h, "#2c3e50");
-        }
-
+        
         async function buscar() {
             const v = document.getElementById('cityInput').value;
             const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${v}`);
             const d = await r.json();
-            if(d.length > 0) map.setView([d[0].lat, d[0].lon], 12);
+            if(d.length > 0) map.setView([d[0].lat, d[0].lon], 10);
         }
-        carregarAlertas();
     </script>
 </body>
 </html>
