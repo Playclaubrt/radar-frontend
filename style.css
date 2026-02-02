@@ -1,4 +1,4 @@
-body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: -apple-system, sans-serif; overflow: hidden; background: #000; }
+body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
 #map { height: 100vh; width: 100vw; z-index: 1; }
 
 #search-container {
@@ -23,12 +23,24 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: -app
     color: white; font-size: 24px; width: 45px; height: 45px; border-radius: 50%;
 }
 
-.nuvem-status { background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 20px; margin-bottom: 10px; }
-.temp-principal { font-size: 4.5rem; font-weight: bold; margin: 5px 0; }
+.temp-principal { font-size: 4rem; font-weight: bold; margin: 5px 0; }
 
-.semana-grid {
-    display: flex; justify-content: space-around; width: 100%;
-    background: rgba(0,0,0,0.15); padding: 15px; border-radius: 20px; margin: 15px 0;
+/* Scroll Horizontal para os 14 dias */
+.semana-scroll {
+    display: flex; 
+    overflow-x: auto; 
+    width: 100%; 
+    gap: 15px; 
+    padding: 15px 0;
+    margin: 15px 0;
+    -webkit-overflow-scrolling: touch;
+}
+.dia-item {
+    min-width: 60px;
+    background: rgba(0,0,0,0.2);
+    padding: 10px;
+    border-radius: 15px;
+    flex-shrink: 0;
 }
 
 .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; }
