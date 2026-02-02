@@ -29,31 +29,44 @@
         const map = L.map('map', { zoomControl: false }).setView([-15.7938, -47.8827], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // Lógica de ícones e clima simplificada para o exemplo
         function getClimaEmoji(code) {
             const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⚡" };
             return tab[code] || "🌡️";
         }
 
+        function getNuvemTipo(code) {
+            if (code >= 95) return "Cumulonimbus";
+            if (code >= 80) return "Cumulus Congestus";
+            if (code >= 51) return "Nimbostratus";
+            return "Céu Limpo";
+        }
+
         map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            abrirPainelFull("<div class='loader'>Obtendo dados...</div>", "#1a1a1a");
-            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-            const data = await res.json();
-            renderizarPainel(data, lat, lng);
+            abrirPainelFull("<div class='loader'>Carregando Cloudwindz...</div>", "#1a1a1a");
+            try {
+                const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
+                const data = await res.json();
+                renderizarPainel(data, lat, lng);
+            } catch(err) { abrirPainelFull("Erro na conexão.", "#333"); }
         });
 
         function renderizarPainel(data, lat, lng) {
             const temp = data.clima.current.temperature_2m;
             const code = data.clima.current.weather_code;
+            
             let bg = "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)";
             if(temp > 30) bg = "linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)";
             if(code >= 95) bg = "linear-gradient(135deg, #4b0082 0%, #000000 100%)";
 
-            let prevHTML = `<div class='semana-scroll'>`;
+            let prevHTML = `<div class='semana-scroll' id='slider'>`;
             data.clima.daily.time.forEach((t, i) => {
                 const d = new Date(t);
-                prevHTML += `<div class="dia-card"><b>${d.getDate()}/${d.getMonth()+1}</b><br>${getClimaEmoji(data.clima.daily.weather_code[i])}</div>`;
+                prevHTML += `
+                <div class="dia-card">
+                    <b>${d.getDate()}/${d.getMonth()+1}</b>
+                    <div style="font-size:2rem;margin:5px 0;">${getClimaEmoji(data.clima.daily.weather_code[i])}</div>
+                </div>`;
             });
             prevHTML += `</div>`;
 
@@ -61,16 +74,18 @@
                 <div class="container-info">
                     <h1 class="cidade">${data.geo.address.city || "Região"}</h1>
                     <div class="temp-big">${temp}°C</div>
+                    <div class="nuvem-tag">☁️ ${getNuvemTipo(code)}</div>
                     ${prevHTML}
                     <div class="grid-stats">
-                        <div class="stat">💧 Umidade<br><b>${data.clima.current.relative_humidity_2m}%</b></div>
-                        <div class="stat">🌬️ Vento<br><b>${data.clima.current.wind_speed_10m}km/h</b></div>
-                        <div class="stat">⏲️ Pressão<br><b>${data.clima.current.pressure_msl}hPa</b></div>
-                        <div class="stat">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
+                        <div class="stat">💧 Humidade<b>${data.clima.current.relative_humidity_2m}%</b></div>
+                        <div class="stat">🌬️ Vento<b>${data.clima.current.wind_speed_10m}km/h</b></div>
+                        <div class="stat">⏲️ Pressão<b>${data.clima.current.pressure_msl}hPa</b></div>
+                        <div class="stat">🍃 Ar (AQI)<b>${data.ar.current.european_aqi}</b></div>
                     </div>
                 </div>
             `;
             abrirPainelFull(html, bg);
+            ativarDragScroll();
         }
 
         function abrirPainelFull(html, bg) {
@@ -81,6 +96,24 @@
         }
 
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+
+        function ativarDragScroll() {
+            const slider = document.getElementById('slider');
+            if(!slider) return;
+            let isDown = false; let startX; let scrollLeft;
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true; startX = e.pageX - slider.offsetLeft; scrollLeft = slider.scrollLeft;
+            });
+            slider.addEventListener('mouseleave', () => isDown = false);
+            slider.addEventListener('mouseup', () => isDown = false);
+            slider.addEventListener('mousemove', (e) => {
+                if(!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 2;
+                slider.scrollLeft = scrollLeft - walk;
+            });
+        }
         
         async function buscar() {
             const v = document.getElementById('cityInput').value;
