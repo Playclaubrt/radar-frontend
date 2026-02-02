@@ -1,50 +1,71 @@
-body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
-#map { height: 100vh; width: 100vw; z-index: 1; }
+/* Configuração Base */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Roboto, sans-serif; background: #000; overflow: hidden; }
 
-#search-container {
-    position: absolute; top: 15px; left: 15px; right: 15px;
-    z-index: 1000; background: white; display: flex;
-    padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+/* Top Bar Adaptativo */
+#top-bar {
+    position: absolute; top: 0; left: 0; width: 100%; height: 60px;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; z-index: 2000; color: white;
 }
-#search-container input { flex: 1; border: none; outline: none; font-size: 16px; }
-#search-container button { background: none; border: none; font-size: 20px; cursor: pointer; }
+.logo { font-size: 1.5rem; font-weight: bold; font-style: italic; color: #ff3b3b; }
+.search-box { display: flex; background: #333; border-radius: 8px; padding: 5px 10px; width: 40%; }
+.search-box input { background: none; border: none; color: white; width: 100%; outline: none; }
+.search-box button { background: none; border: none; cursor: pointer; }
 
+/* Mapa */
+#map { height: 100vh; width: 100vw; }
+
+/* Painel Fullscreen (Responsivo) */
 #painel-full {
     position: fixed; top: 100%; left: 0; width: 100%; height: 100%;
-    z-index: 3000; transition: top 0.4s ease-in-out;
-    color: white; padding: 60px 20px 20px 20px; box-sizing: border-box;
-    display: flex; flex-direction: column; align-items: center; text-align: center;
+    z-index: 3000; transition: top 0.5s ease-in-out;
+    display: flex; justify-content: center; align-items: center; padding: 20px;
 }
 #painel-full.active { top: 0; }
+.btn-fechar-full { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2rem; border-radius: 50%; width: 50px; height: 50px; }
 
-.btn-fechar-full {
-    position: absolute; top: 20px; right: 20px;
-    background: rgba(255,255,255,0.3); border: none;
-    color: white; font-size: 24px; width: 45px; height: 45px; border-radius: 50%;
-}
+/* Conteúdo Dinâmico */
+.container-info { width: 100%; max-width: 900px; color: white; }
+.temp-big { font-size: clamp(4rem, 15vw, 8rem); font-weight: 800; line-height: 1; }
+.cidade { font-size: clamp(1.2rem, 4vw, 2.5rem); opacity: 0.9; }
 
-.temp-principal { font-size: 4rem; font-weight: bold; margin: 5px 0; }
-
-/* Scroll Horizontal para os 14 dias */
+/* 14 Dias Scroll */
 .semana-scroll {
-    display: flex; 
-    overflow-x: auto; 
-    width: 100%; 
-    gap: 15px; 
-    padding: 15px 0;
-    margin: 15px 0;
-    -webkit-overflow-scrolling: touch;
+    display: flex; gap: 15px; overflow-x: auto; padding: 20px 0;
+    scrollbar-width: none; -ms-overflow-style: none;
 }
-.dia-item {
-    min-width: 60px;
-    background: rgba(0,0,0,0.2);
-    padding: 10px;
-    border-radius: 15px;
-    flex-shrink: 0;
+.semana-scroll::-webkit-scrollbar { display: none; }
+.dia-card {
+    min-width: 80px; background: rgba(255,255,255,0.1);
+    padding: 15px; border-radius: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.1);
 }
 
-.info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; }
-.info-card { background: rgba(255,255,255,0.2); padding: 10px 5px; border-radius: 12px; font-size: 0.8rem; }
-.info-card b { display: block; font-size: 0.95rem; margin-top: 3px; }
+/* Grid de Status (Vento, Pressão, etc) */
+.grid-stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px; width: 100%; margin-top: 20px;
+}
+.stat { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; font-size: 0.9rem; }
+.stat b { display: block; font-size: 1.2rem; margin-top: 5px; }
 
-.emoji-icon { font-size: 24px; text-align: center; line-height: 30px; }
+/* AJUSTES ESPECÍFICOS POR DISPOSITIVO */
+
+/* Celular */
+@media (max-width: 600px) {
+    .search-box { width: 60%; }
+    .grid-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* TV e Telas Grandes (Console/PC) */
+@media (min-width: 1200px) {
+    .container-info { padding: 40px; background: rgba(0,0,0,0.2); border-radius: 30px; }
+    .dia-card { min-width: 100px; }
+    .logo { font-size: 2.5rem; }
+}
+
+/* TV TIZEN / Navegadores de Console (Otimização de Performance) */
+@media (hover: none) and (pointer: coarse) {
+    .btn-fechar-full { width: 70px; height: 70px; } /* Botão maior para controle remoto/touch */
+}
