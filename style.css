@@ -1,40 +1,36 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: sans-serif; background: #000; overflow: hidden; }
-
-#map { height: 100vh; width: 100vw; }
+body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; }
+#map { height: 100vh; width: 100vw; z-index: 1; }
 
 #search-container {
     position: absolute; top: 15px; left: 15px; right: 15px;
-    z-index: 1000; background: white; padding: 10px; border-radius: 8px; display: flex;
+    z-index: 1000; background: white; display: flex;
+    padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
-#search-container input { flex: 1; border: none; outline: none; }
+#search-container input { flex: 1; border: none; outline: none; font-size: 16px; }
 
-/* PAINEL DE ALERTA AZUL MUITO ESCURO NO MEIO */
-#alert-box {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); z-index: 5000;
-    display: flex; align-items: center; justify-content: center;
-}
-.alert-content {
-    background: #000b1a; color: white; padding: 25px; border-radius: 12px;
-    width: 85%; max-width: 500px; text-align: center; border: 1px solid #003366;
-    max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;
-}
-.alerta-lista-interna { overflow-y: auto; text-align: left; margin: 15px 0; padding-right: 10px; }
-.alert-content h2 { color: #0080ff; margin-bottom: 10px; }
-.alert-content button { background: #003366; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
-
-/* PAINEL DE CLIMA */
 #painel-full {
     position: fixed; top: 100%; left: 0; width: 100%; height: 100%;
-    z-index: 3000; transition: 0.4s; color: white; text-align: center;
-    overflow-y: auto; padding-bottom: 50px;
+    z-index: 3000; transition: top 0.4s ease;
+    color: white; padding: 60px 20px; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    overflow-y: auto; /* PERMITE ROLAR PARA VER OS 14 DIAS */
 }
 #painel-full.active { top: 0; }
-.btn-fechar-full { position: absolute; top: 20px; right: 20px; font-size: 2rem; color: white; background: none; border: none; cursor: pointer; }
 
-.lista-vertical { margin-top: 20px; padding: 0 15px; }
-.linha { display: flex; justify-content: space-between; padding: 15px; background: rgba(255,255,255,0.05); margin-bottom: 3px; border-radius: 5px; }
+.btn-fechar-full {
+    position: absolute; top: 20px; right: 20px;
+    background: rgba(255,255,255,0.3); border: none;
+    color: white; font-size: 24px; width: 45px; height: 45px; border-radius: 50%;
+}
 
-.hidden { display: none !important; }
-.alerta-mapa-icon { font-size: 25px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.temp-principal { font-size: 5rem; font-weight: bold; }
+
+.semana-grid {
+    display: flex; justify-content: space-around; width: 100%;
+    background: rgba(0,0,0,0.2); padding: 15px; border-radius: 20px; margin-bottom: 20px;
+}
+
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; padding-bottom: 30px;}
+.info-card { background: rgba(255,255,255,0.2); padding: 15px; border-radius: 15px; }
+
+.emoji-icon { font-size: 24px; text-align: center; line-height: 30px; }
