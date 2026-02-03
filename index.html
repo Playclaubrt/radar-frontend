@@ -3,21 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cloudwindz | Storm Chaser</title>
+    <title>Clima</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <header id="top-bar">
-        <div class="logo">Cloudwindz</div>
-        <div class="search-box">
-            <input type="text" id="cityInput" placeholder="Buscar local...">
-            <button onclick="buscar()">🔍</button>
-        </div>
-    </header>
+    <div id="search-container">
+        <input type="text" id="cityInput" placeholder="Buscar local...">
+        <button onclick="buscar()">🔍</button>
+    </div>
 
     <div id="map"></div>
+
+    <div id="alert-box" class="hidden">
+        <div class="alert-content">
+            <div id="alert-text"></div>
+            <button onclick="fecharAlerta()">FECHAR</button>
+        </div>
+    </div>
 
     <div id="painel-full">
         <button class="btn-fechar-full" onclick="fecharPainel()">✕</button>
@@ -29,14 +33,41 @@
         const map = L.map('map', { zoomControl: false }).setView([-15.7938, -47.8827], 4);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+        const iconInmet = L.divIcon({ html: '🔅', className: 'alerta-mapa-icon', iconSize: [30, 30] });
+        const iconNoaa = L.divIcon({ html: '☁️', className: 'alerta-mapa-icon', iconSize: [30, 30] });
+
         function getClimaEmoji(code) {
             const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️" };
             return tab[code] || "🌡️";
         }
 
+        async function carregarAlertas() {
+            const res = await fetch('/api/alertas');
+            const data = await res.json();
+            
+            // Inmet em Brasília
+            L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map).on('click', () => {
+                let todos = data.inmet.map(a => `<p><b>${a.title}</b><br>${a.description}</p><hr>`).join('');
+                mostrarAlertaCentral("ALERTA INMET BRASIL", todos);
+            });
+
+            // NOAA em Washington (EUA)
+            L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map).on('click', () => {
+                let todos = data.noaa.map(a => `<p><b>${a.properties.event}</b><br>${a.properties.headline}</p><hr>`).join('');
+                mostrarAlertaCentral("ALERTA NOAA USA", todos);
+            });
+        }
+
+        function mostrarAlertaCentral(titulo, conteudo) {
+            document.getElementById('alert-text').innerHTML = `<h2>${titulo}</h2><div class="alerta-lista-interna">${conteudo}</div>`;
+            document.getElementById('alert-box').classList.remove('hidden');
+        }
+
+        function fecharAlerta() { document.getElementById('alert-box').classList.add('hidden'); }
+
         map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            abrirPainelFull("<div class='loader'>Carregando...</div>", "#1a1a1a");
+            abrirPainelFull("Carregando...", "#001a33");
             const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
             const data = await res.json();
             renderizarPainel(data);
@@ -44,52 +75,32 @@
 
         function renderizarPainel(data) {
             const temp = data.clima.current.temperature_2m;
-            const code = data.clima.current.weather_code;
-            
-            let bg = "linear-gradient(180deg, #1e3c72 0%, #121212 100%)";
-            if(temp > 30) bg = "linear-gradient(180deg, #f5576c 0%, #121212 100%)";
-            if(code >= 95) bg = "linear-gradient(180deg, #4b0082 0%, #000000 100%)";
-
-            // LISTA VERTICAL DE 14 DIAS
-            let listaHTML = `<div class='lista-previsao'>`;
-            const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+            let listaHTML = `<div class='lista-vertical'>`;
+            const dias = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
             
             data.clima.daily.time.forEach((t, i) => {
                 const d = new Date(t);
-                listaHTML += `
-                    <div class="linha-dia">
-                        <span class="txt-dia">${diasSemana[d.getDay()]}</span>
-                        <span class="txt-data">${d.getDate()}/${d.getMonth()+1}</span>
-                        <span class="emoji-dia">${getClimaEmoji(data.clima.daily.weather_code[i])}</span>
-                    </div>`;
+                listaHTML += `<div class="linha"><span>${dias[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</span><span>${getClimaEmoji(data.clima.daily.weather_code[i])}</span></div>`;
             });
             listaHTML += `</div>`;
 
-            const html = `
-                <div class="container-info">
-                    <h1 class="cidade">${data.geo.address.city || "Localização"}</h1>
-                    <div class="temp-big">${temp}°C</div>
-                    
-                    <div class="grid-stats">
-                        <div class="stat">💧 ${data.clima.current.relative_humidity_2m}%</div>
-                        <div class="stat">🌬️ ${data.clima.current.wind_speed_10m}km/h</div>
-                        <div class="stat">⏲️ ${data.clima.current.pressure_msl}hPa</div>
-                    </div>
-
-                    ${listaHTML}
-                </div>
+            document.getElementById('conteudo-full').innerHTML = `
+                <h1 style="margin-top:20px">${data.geo.address.city || "Localização"}</h1>
+                <div style="font-size:4rem; font-weight:bold">${temp}°C</div>
+                <div class="mini-stats">💧 ${data.clima.current.relative_humidity_2m}% | 🌬️ ${data.clima.current.wind_speed_10m}km/h | ⏲️ ${data.clima.current.pressure_msl}hPa</div>
+                ${listaHTML}
             `;
-            abrirPainelFull(html, bg);
+            document.getElementById('painel-full').classList.add('active');
         }
 
-        function abrirPainelFull(html, bg) {
+        function abrirPainelFull(h, bg) { 
             const p = document.getElementById('painel-full');
             p.style.background = bg;
-            document.getElementById('conteudo-full').innerHTML = html;
-            p.classList.add('active');
+            document.getElementById('conteudo-full').innerHTML = h;
         }
 
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        carregarAlertas();
         
         async function buscar() {
             const v = document.getElementById('cityInput').value;
