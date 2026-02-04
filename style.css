@@ -1,14 +1,23 @@
 body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; }
 
+/* MODIFICAÇÃO APENAS NA BARRA DE PESQUISA */
 #search-container {
-    position: absolute; top: 15px; left: 15px; right: 15px;
-    z-index: 1000; background: white; display: flex;
-    padding: 10px; border-radius: 12px;
+    position: absolute; 
+    top: 15px; 
+    left: 15px; 
+    /* Mudança: max-width para não ser tão longo */
+    width: 250px; 
+    z-index: 1000; 
+    background: white; 
+    display: flex;
+    padding: 10px; 
+    border-radius: 12px;
 }
 #search-container input { flex: 1; border: none; outline: none; }
+#search-container button { background: none; border: none; font-size: 18px; cursor: pointer; }
 
-/* MENU SUPERIOR DIREITO */
+/* TODO O RESTO IGUAL */
 #btn-menu-lateral {
     position: absolute; top: 20px; right: 20px; z-index: 2000;
     background: #001a33; color: #00ff99; border: 2px solid #00ff99;
