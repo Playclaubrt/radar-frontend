@@ -23,13 +23,16 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false }).setView([-15.7938, -47.8827], 4);
+        const map = L.map('map', {
+            minZoom: 2, maxZoom: 17, zoomControl: false, preferCanvas: true
+        }).setView([-15.7938, -47.8827], 4);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [30, 30] });
         const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [30, 30] });
 
-        let alertasAtuais = { inmet: [], noaa: [] };
+        let alertasGlobais = { inmet: [], noaa: [] };
 
         function getClimaEmoji(code) {
             const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️" };
@@ -44,44 +47,44 @@
                 const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
                 const data = await res.json();
                 
-                const temp = data.clima.current.temperature_2m;
-                const code = data.clima.current.weather_code;
+                const current = data.clima.current;
+                const daily = data.clima.daily;
                 const nome = data.geo.address.city || data.geo.address.town || "Região";
 
-                // Lógica do Círculo de Alerta (🔵 tem alerta, ⭕ não tem)
-                const temAlerta = alertasAtuais.inmet.length > 0 || alertasAtuais.noaa.length > 0;
-                const circuloStatus = temAlerta ? '🔵' : '⭕';
-                const acaoAlerta = temAlerta ? "exibirAlertaGeral()" : "alert('Sem alertas ativos no momento')";
+                // ADIÇÃO: Lógica do Círculo (🔵 Alertas, ⭕ Sem alertas)
+                const temAlerta = alertasGlobais.inmet.length > 0 || alertasGlobais.noaa.length > 0;
+                const circulo = temAlerta ? '🔵' : '⭕';
+                const acaoCirculo = temAlerta ? "exibirAlertaGeral()" : "alert('Não há alertas ativos.')";
 
                 let bg = "linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)"; 
-                if (temp > 30) bg = "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)";
+                if (current.temperature_2m > 30) bg = "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)";
 
-                // Previsão expandida para 14 dias
+                // ADIÇÃO: Expandido para 14 dias (Layout original mantido)
                 let prevHTML = `<div class='semana-grid' style='flex-wrap: wrap; gap: 10px;'>`;
                 const diasLabel = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
-                data.clima.daily.time.forEach((t, i) => {
-                    const d = new Date(t);
-                    prevHTML += `<div style='min-width: 60px;'><b>${diasLabel[d.getDay()]}</b><br>${getClimaEmoji(data.clima.daily.weather_code[i])}<br><small>${d.getDate()}/${d.getMonth()+1}</small></div>`;
+                daily.time.forEach((t, i) => {
+                    const d = new Date(t + 'T00:00');
+                    prevHTML += `<div style='min-width: 60px;'><b>${diasLabel[d.getDay()]}</b><br>${getClimaEmoji(daily.weather_code[i])}<br><small>${d.getDate()}/${d.getMonth()+1}</small></div>`;
                 });
                 prevHTML += `</div>`;
 
                 let html = `
                     <h1 class="cidade-nome">${nome}</h1>
-                    <div class="temp-principal">${temp}°C</div>
+                    <div class="temp-principal">${current.temperature_2m.toFixed(1)}°C</div>
                     
-                    <div onclick="${acaoAlerta}" style="cursor:pointer; font-size: 1.5rem; margin-bottom: 15px;">
-                        ${circuloStatus} <small style="font-size: 0.8rem;">Status Alerta</small>
-                    </div>
+                    <div onclick="${acaoCirculo}" style="cursor:pointer; font-size: 2.2rem; margin-bottom: 10px;">${circulo}</div>
 
+                    <div class="emoji-grande">${getClimaEmoji(current.weather_code)}</div>
+                    
                     ${prevHTML}
 
                     <div class="info-grid">
-                        <div class="info-card">💧 Umidade<br><b>${data.clima.current.relative_humidity_2m}%</b></div>
+                        <div class="info-card">💧 Umidade<br><b>${current.relative_humidity_2m}%</b></div>
                         <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
-                        <div class="info-card">⏲️ Pressão<br><b>${data.clima.current.pressure_msl} hPa</b></div>
-                        <div class="info-card">👁️ Visib.<br><b>${(data.clima.current.visibility / 1000).toFixed(1)} km</b></div>
-                        <div class="info-card">🌅 Nascer<br><b>${data.clima.daily.sunrise[0].split('T')[1]}</b></div>
-                        <div class="info-card">🌇 Pôr do Sol<br><b>${data.clima.daily.sunset[0].split('T')[1]}</b></div>
+                        <div class="info-card">⏲️ Pressão<br><b>${current.pressure_msl}hPa</b></div>
+                        <div class="info-card">👁️ Visib.<br><b>${(current.visibility / 1000).toFixed(1)}km</b></div>
+                        <div class="info-card">🌅 Nascer<br><b>${daily.sunrise[0].split('T')[1]}</b></div>
+                        <div class="info-card">🌇 Pôr Sol<br><b>${daily.sunset[0].split('T')[1]}</b></div>
                     </div>
                 `;
                 abrirPainelFull(html, bg);
@@ -89,21 +92,23 @@
         });
 
         async function carregarAlertas() {
-            const res = await fetch('/api/alertas');
-            alertasAtuais = await res.json();
-            if (alertasAtuais.inmet.length > 0) {
-                L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map)
-                .on('click', () => exibirAlertaLista(alertasAtuais.inmet, "INMET Brasil"));
-            }
-            if (alertasAtuais.noaa.length > 0) {
-                L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map)
-                .on('click', () => exibirAlertaListaNoaa(alertasAtuais.noaa));
-            }
+            try {
+                const res = await fetch('/api/alertas');
+                alertasGlobais = await res.json();
+                if (alertasGlobais.inmet.length > 0) {
+                    L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map)
+                    .on('click', () => exibirAlertaLista(alertasGlobais.inmet, "INMET Brasil"));
+                }
+                if (alertasGlobais.noaa.length > 0) {
+                    L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map)
+                    .on('click', () => exibirAlertaListaNoaa(alertasGlobais.noaa));
+                }
+            } catch (e) {}
         }
 
         function exibirAlertaGeral() {
-            if(alertasAtuais.inmet.length > 0) exibirAlertaLista(alertasAtuais.inmet, "INMET Brasil");
-            else if(alertasAtuais.noaa.length > 0) exibirAlertaListaNoaa(alertasAtuais.noaa);
+            if(alertasGlobais.inmet.length > 0) exibirAlertaLista(alertasGlobais.inmet, "INMET Brasil");
+            else if(alertasGlobais.noaa.length > 0) exibirAlertaListaNoaa(alertasGlobais.noaa);
         }
 
         function abrirPainelFull(html, bg) {
@@ -117,14 +122,14 @@
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
         function exibirAlertaLista(lista, fonte) {
-            let h = `<h2>${fonte}</h2><div style='text-align:left; overflow-y:auto; padding: 10px;'>`;
+            let h = `<h2>${fonte}</h2><div style='text-align:left; overflow-y:auto; padding:10px;'>`;
             lista.forEach(a => h += `<p><b>${a.title[0]}</b><br>${a.description[0]}</p><hr>`);
             h += `</div>`;
             abrirPainelFull(h, "#1a1a1a");
         }
 
         function exibirAlertaListaNoaa(lista) {
-            let h = `<h2>NOAA EUA</h2><div style='text-align:left; overflow-y:auto; padding: 10px;'>`;
+            let h = `<h2>NOAA EUA</h2><div style='text-align:left; overflow-y:auto; padding:10px;'>`;
             lista.forEach(a => h += `<p><b>${a.properties.event}</b><br>${a.properties.headline || a.properties.description}</p><hr>`);
             h += `</div>`;
             abrirPainelFull(h, "#1a1a1a");
