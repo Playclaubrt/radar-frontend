@@ -14,7 +14,15 @@
     <div id="menu-lateral-65">
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
-            </div>
+            <button class="btn-menu-item" onclick="toggleInterfaceCamadas()">MultiCamadas</button>
+        </div>
+    </div>
+
+    <div id="interface-camadas" class="camadas-hidden">
+        <div class="quadrado-camadas">
+            <button class="btn-camada-add">+</button>
+            <button class="btn-camada-fechar" onclick="toggleInterfaceCamadas()">x</button>
+        </div>
     </div>
 
     <div id="search-container">
@@ -41,6 +49,11 @@
 
         function toggleMenu() {
             document.getElementById('menu-lateral-65').classList.toggle('menu-active');
+        }
+
+        // FUNÇÃO PARA A NOVA INTERFACE
+        function toggleInterfaceCamadas() {
+            document.getElementById('interface-camadas').classList.toggle('camadas-active');
         }
 
         function getClimaEmoji(code) {
