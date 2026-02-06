@@ -18,10 +18,10 @@
         </div>
     </div>
 
-    <div id="interface-camadas" class="camadas-hidden">
+    <div id="interface-camadas">
         <div class="quadrado-camadas">
-            <button class="btn-camada-add">+</button>
-            <button class="btn-camada-fechar" onclick="toggleInterfaceCamadas()">x</button>
+            <button class="btn-camada-fechar" onclick="toggleInterfaceCamadas()">✕</button>
+            <button class="btn-camada-add">＋</button>
         </div>
     </div>
 
@@ -51,9 +51,9 @@
             document.getElementById('menu-lateral-65').classList.toggle('menu-active');
         }
 
-        // FUNÇÃO PARA A NOVA INTERFACE
         function toggleInterfaceCamadas() {
-            document.getElementById('interface-camadas').classList.toggle('camadas-active');
+            const ui = document.getElementById('interface-camadas');
+            ui.classList.toggle('camadas-active');
         }
 
         function getClimaEmoji(code) {
