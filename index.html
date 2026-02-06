@@ -39,22 +39,30 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false }).setView([-15.7938, -47.8827], 4);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        // ADICIONADO: Limites para o mapa não fugir da tela
+        const southWest = L.latLng(-89.981557, -180);
+        const northEast = L.latLng(89.993461, 180);
+        const bounds = L.latLngBounds(southWest, northEast);
 
-        const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [30, 30] });
-        const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [30, 30] });
+        const map = L.map('map', { 
+            zoomControl: false,
+            maxBounds: bounds,
+            maxBoundsViscosity: 1.0 
+        }).setView([-15.7938, -47.8827], 4);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            noWrap: true,
+            bounds: bounds
+        }).addTo(map);
+
+        // ÍCONES AUMENTADOS (iconSize: [50, 50])
+        const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [50, 50] });
+        const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [50, 50] });
 
         let alertasGlobais = { inmet: [], noaa: [] };
 
-        function toggleMenu() {
-            document.getElementById('menu-lateral-65').classList.toggle('menu-active');
-        }
-
-        function toggleInterfaceCamadas() {
-            const ui = document.getElementById('interface-camadas');
-            ui.classList.toggle('camadas-active');
-        }
+        function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
+        function toggleInterfaceCamadas() { document.getElementById('interface-camadas').classList.toggle('camadas-active'); }
 
         function getClimaEmoji(code) {
             const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️" };
