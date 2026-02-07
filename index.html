@@ -9,22 +9,15 @@
 </head>
 <body>
     <div id="top-bar">
-        <div id="search-container">
-            <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
-            <button id="btnBuscar">🔍</button>
-        </div>
+        <div id="search-container"><input type="text" id="cityInput" placeholder="Cidade..."><button id="btnBuscar">🔍</button></div>
         <button id="btn-menu-lateral" onclick="toggleMenu()">☰</button>
     </div>
 
     <div id="menu-lateral-65">
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
-            <button class="btn-menu-item">MultiCamadas</button>
-            <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
-                <button class="btn-menu-item" onclick="setCamada('Default')">Default</button>
-                <button class="btn-menu-item" onclick="setCamada('Satelite')">SÁTELITE</button>
-                <button class="btn-menu-item" onclick="setCamada('StormChaser')">Storm Chaser Layer</button>
-            </div>
+            <button class="btn-menu-item" onclick="setCamada('Default')">Mapa Padrão</button>
+            <button class="btn-menu-item" onclick="setCamada('StormChaser')">Storm Chaser Mode</button>
         </div>
     </div>
 
@@ -37,37 +30,29 @@
         const API_KEY = "7609a59c493758162d9b0a6af2914e1f"; 
         const map = L.map('map', { zoomControl: false, minZoom: 3 }).setView([-15.79, -47.88], 4);
 
-        const tileCinza = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { className: 'mapa-cinza', noWrap: true }).addTo(map);
-        const tileSateliteReal = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { noWrap: true });
-        
-        const nuvensIR = L.tileLayer(`https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.8, zIndex: 10 }).addTo(map);
-        const nuvensClassicas = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.7, zIndex: 10 });
-        
+        // MAPA CINZA ESCURO (FUNDO MORTO)
+        const baseMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+            className: 'mapa-cinza-total' 
+        }).addTo(map);
+
+        // NUVENS VIBRANTES (SÓ ISSO TEM COR)
+        const nuvens = L.tileLayer(`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { 
+            opacity: 0.85, zIndex: 100 
+        }).addTo(map);
+
         let camadaAlertas = L.layerGroup().addTo(map);
         let camadaRota = L.layerGroup().addTo(map);
         let modoStorm = false;
 
-        function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
-
-        function setCamada(tipo) {
-            map.removeLayer(tileCinza); map.removeLayer(tileSateliteReal);
-            map.removeLayer(nuvensIR); map.removeLayer(nuvensClassicas);
-            if (tipo === 'Satelite') { tileSateliteReal.addTo(map); nuvensClassicas.addTo(map); }
-            else { tileCinza.addTo(map); nuvensIR.addTo(map); }
-            modoStorm = (tipo === 'StormChaser');
-            toggleMenu();
-        }
-
         map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
-            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
+            const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const data = await res.json();
             const c = data.clima.current;
             const d = data.clima.daily;
 
             if (modoStorm) {
-                desenharRotaMapa(lat, lng);
-                abrirPainelStorm(c, lat);
+                desenharRota(e.latlng.lat, e.latlng.lng);
+                classificarNuvem(c, e.latlng.lat);
                 return;
             }
 
@@ -75,40 +60,32 @@
                 <h1>${data.geo.address.city || "Local"}</h1>
                 <div class="temp-principal">${Math.round(c.temperature_2m)}°C</div>
                 <div class="info-grid">
-                    <div class="info-card">💧 Humid.<br><b>${c.relative_humidity_2m}%</b></div>
-                    <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
-                    <div class="info-card">⏲️ Pressão<br><b>${c.pressure_msl}hPa</b></div>
-                    <div class="info-card">👁️ Visib.<br><b>${(c.visibility/1000).toFixed(1)}km</b></div>
-                    <div class="info-card">🌅 Nascer<br><b>${d.sunrise[0].split('T')[1]}</b></div>
-                    <div class="info-card">🌇 Pôr Sol<br><b>${d.sunset[0].split('T')[1]}</b></div>
-                    <div class="info-card">🚩 Vento<br><b>${c.wind_speed_10m}km/h</b></div>
-                    <div class="info-card">📅 Previsão 14d<br><b>Máx ${Math.max(...d.temperature_2m_max)}°C</b></div>
+                    <div class="info-card">Vento: <b>${c.wind_speed_10m}km/h</b></div>
+                    <div class="info-card">Pressão: <b>${c.pressure_msl}hPa</b></div>
+                    <div class="info-card">Humid: <b>${c.relative_humidity_2m}%</b></div>
+                    <div class="info-card">Visib: <b>${(c.visibility/1000).toFixed(1)}km</b></div>
+                    <div class="info-card">Máx 14d: <b>${Math.max(...d.temperature_2m_max)}°C</b></div>
                 </div>
             `, "#001a33");
         });
 
-        function abrirPainelStorm(c, lat) {
-            let tipo = "Cumulus";
-            if(c.wind_speed_10m > 48) tipo = "Supercelula";
-            else if(c.pressure_msl < 1003) tipo = "Shelf Cloud";
-            else if(Math.abs(lat) > 30 && c.relative_humidity_2m > 85) tipo = "Mammatus";
-            else if(c.wind_speed_10m > 28) tipo = "Stratocumulo";
+        function classificarNuvem(c, lat) {
+            let tipo = "Cumulos";
+            if (c.wind_speed_10m > 50) tipo = "Supercelula";
+            else if (c.pressure_msl < 1003) tipo = "Shelf Cloud";
+            else if (Math.abs(lat) > 30 && c.relative_humidity_2m > 85) tipo = "Mammatus";
+            else if (c.wind_speed_10m > 25) tipo = "Stratocumulo";
 
             document.getElementById('painel-rota').classList.add('active');
-            document.getElementById('info-rota').innerHTML = `
-                <div style="font-size:15px; font-weight:bold;">
-                    TIPO: <span style="color:#00ff99;">${tipo}</span> | KM/h: <span style="color:#00ff99;">${c.wind_speed_10m}</span><br>
-                    ALTURA: ${c.pressure_msl < 1005 ? 'Alto' : 'Médio'} | DIREÇÃO: ${c.wind_direction_10m > 180 ? 'S' : 'N'}
-                </div>
-            `;
-            setTimeout(() => document.getElementById('painel-rota').classList.remove('active'), 6000);
+            document.getElementById('info-rota').innerHTML = `<b>TIPO: ${tipo} | VELOCIDADE: ${c.wind_speed_10m}km/h</b>`;
+            setTimeout(() => document.getElementById('painel-rota').classList.remove('active'), 5000);
         }
 
-        function desenharRotaMapa(lat, lng) {
+        function desenharRota(lat, lng) {
             camadaRota.clearLayers();
-            for(let i=1; i<8; i++) {
-                L.marker([lat + (i*0.25), lng + (i*0.25)], {
-                    icon: L.divIcon({ html: '<b style="color:#00ff99; font-size:24px; text-shadow: 2px 2px #000;">➖</b>', className: 'rota-icon' })
+            for(let i=1; i<6; i++) {
+                L.marker([lat + (i*0.2), lng + (i*0.2)], {
+                    icon: L.divIcon({ html: '<b style="color:#00ff99; font-size:25px;">➖</b>', className: 'r-icon' })
                 }).addTo(camadaRota);
             }
         }
@@ -117,36 +94,24 @@
             const res = await fetch('/api/alertas');
             const d = await res.json();
             camadaAlertas.clearLayers();
-
-            L.marker([-15.79, -47.88], { icon: L.divIcon({ html: '🔅', className: 'emoji-icon' }) }).addTo(camadaAlertas).on('click', (e) => {
-                L.DomEvent.stopPropagation(e);
-                abrirLista(d.inmet, "Alertas INMET 🔅");
-            });
-
-            L.marker([38.89, -77.03], { icon: L.divIcon({ html: '☁️', className: 'emoji-icon' }) }).addTo(camadaAlertas).on('click', (e) => {
-                L.DomEvent.stopPropagation(e);
-                abrirLista(d.noaa, "Alertas NOAA ☁️", true);
-            });
+            L.marker([-15, -48], { icon: L.divIcon({ html: '🔅', className: 'emoji' }) }).addTo(camadaAlertas).on('click', () => abrirLista(d.inmet, "INMET"));
+            L.marker([38, -77], { icon: L.divIcon({ html: '☁️', className: 'emoji' }) }).addTo(camadaAlertas).on('click', () => abrirLista(d.noaa, "NOAA", true));
         }
 
         function abrirLista(lista, fonte, isNoaa = false) {
-            let h = `<h1 style="color:#00ff99; margin-bottom:30px;">${fonte}</h1>`;
+            let h = `<h1>Alertas ${fonte}</h1>`;
             lista.forEach(a => {
-                const tit = isNoaa ? a.properties.event : a.title[0];
-                const desc = isNoaa ? (a.properties.description || a.properties.headline) : a.description[0];
-                h += `<div class="card-alerta-antigo"><div class="alerta-header">⚠️ ${tit}</div><div class="alerta-body">${desc}</div></div>`;
+                const t = isNoaa ? a.properties.event : a.title[0];
+                const d = isNoaa ? a.properties.description : a.description[0];
+                h += `<div class="alerta-bloco"><b>${t}</b><p>${d}</p></div>`;
             });
             abrirPainelFull(h, "#001a33");
         }
 
-        function abrirPainelFull(h, bg) {
-            const p = document.getElementById('painel-full');
-            p.style.backgroundColor = bg;
-            document.getElementById('conteudo-full').innerHTML = h;
-            p.classList.add('active');
-        }
-
+        function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
+        function abrirPainelFull(h, bg) { document.getElementById('painel-full').style.background = bg; document.getElementById('conteudo-full').innerHTML = h; document.getElementById('painel-full').classList.add('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        function setCamada(m) { modoStorm = (m === 'StormChaser'); toggleMenu(); }
         carregarAlertas();
     </script>
 </body>
