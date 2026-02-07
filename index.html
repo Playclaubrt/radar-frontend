@@ -15,12 +15,12 @@
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
             <button class="btn-menu-item" onclick="toggleInterfaceCamadas()">MultiCamadas</button>
-            <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 12px;">
-                <button class="btn-menu-item camada-btn" onclick="setCamada('Default')">Default</button>
-                <button class="btn-menu-item camada-btn" onclick="setCamada('StormChaser')">Storm Chaser Layer</button>
-                <button class="btn-menu-item camada-btn">Nuvens (Breve)</button>
-                <button class="btn-menu-item camada-btn">Radar (Breve)</button>
-                <button class="btn-menu-item camada-btn">Ventos (Breve)</button>
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn-menu-item" onclick="setCamada('Default')">Default</button>
+                <button class="btn-menu-item" onclick="setCamada('StormChaser')">Storm Chaser Layer</button>
+                <button class="btn-menu-item">Nuvens</button>
+                <button class="btn-menu-item">Tempestades</button>
+                <button class="btn-menu-item">Alertas</button>
             </div>
         </div>
     </div>
@@ -28,12 +28,12 @@
     <div id="interface-camadas">
         <div class="quadrado-camadas">
             <button class="btn-camada-fechar" onclick="toggleInterfaceCamadas()">✕</button>
-            <div id="container-extras" style="display:none; color:black; font-weight:bold; padding:20px;">
-                <p><input type="checkbox"> Radar Doppler</p>
-                <p><input type="checkbox"> Satélite Real</p>
-                <p><input type="checkbox"> Termal</p>
+            <div id="opcoes-mais" style="display:none; color:black; font-weight:bold; padding:10px;">
+                <label><input type="checkbox"> Radar Doppler</label><br>
+                <label><input type="checkbox"> Satélite Real</label><br>
+                <label><input type="checkbox"> Raios</label>
             </div>
-            <button class="btn-camada-add" onclick="abrirExtras()">＋</button>
+            <button class="btn-camada-add" onclick="mostrarExtras()">＋</button>
         </div>
     </div>
 
@@ -51,16 +51,17 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // CACHE FRONT-END
-        let cacheFrontAlertas = { data: null, time: 0 };
-        const bounds = L.latLngBounds(L.latLng(-89.9, -180), L.latLng(89.9, 180));
+        // CACHE FRONT-END EM MS
+        let cacheFront = { data: null, last: 0 };
+        const CACHE_VALIDO_MS = 120000; 
 
+        const bounds = L.latLngBounds(L.latLng(-89.9, -180), L.latLng(89.9, 180));
         const map = L.map('map', { 
             zoomControl: false, minZoom: 2, maxBounds: bounds, maxBoundsViscosity: 1.0 
         }).setView([-15.7938, -47.8827], 4);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            noWrap: true, bounds: bounds, className: 'map-tiles-cinza'
+            noWrap: true, bounds: bounds, className: 'mapa-base-cinza'
         }).addTo(map);
 
         let camadaFenomenos = L.layerGroup().addTo(map);
@@ -68,62 +69,72 @@
 
         function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
         function toggleInterfaceCamadas() { document.getElementById('interface-camadas').classList.toggle('camadas-active'); }
-        function abrirExtras() { document.getElementById('container-extras').style.display = 'block'; }
+        function mostrarExtras() { document.getElementById('opcoes-mais').style.display = 'block'; }
 
-        function getCorSeveridade(texto) {
-            const t = texto.toLowerCase();
-            if (t.includes('tornado') || t.includes('furacão')) return '#ff0000';
-            if (t.includes('tempestade') || t.includes('severo')) return '#ff7700';
-            if (t.includes('chuva')) return '#ffff00';
+        function getCor(t) {
+            t = t.toLowerCase();
+            if (t.includes('tornado')) return '#ff0000';
+            if (t.includes('tempestade')) return '#ff7700';
             return '#00ff00';
         }
 
-        async function carregarDados() {
-            const agora = Date.now();
-            if (cacheFrontAlertas.data && (agora - cacheFrontAlertas.time < 300000)) {
-                renderizar(cacheFrontAlertas.data);
-                return;
-            }
-            const res = await fetch('/api/alertas');
-            const dados = await res.json();
-            cacheFrontAlertas = { data: dados, time: agora };
-            renderizar(dados);
+        function getAnalyse(t) {
+            t = t.toLowerCase();
+            if (t.includes('tornado') || t.includes('severo')) 
+                return { tipo: "Cumulonimbus (CB)", alt: "Alta (12km+)", rota: "15° SE", vel: "55km/h" };
+            return { tipo: "Cumulus Congestus", alt: "Média (5km)", rota: "Estável", vel: "12km/h" };
         }
 
-        function renderizar(dados) {
+        async function carregar() {
+            const agora = Date.now();
+            if (cacheFront.data && (agora - cacheFront.last < CACHE_VALIDO_MS)) {
+                render(cacheFront.data);
+            } else {
+                const res = await fetch('/api/alertas');
+                const dados = await res.json();
+                cacheFront = { data: dados, last: agora };
+                render(dados);
+            }
+        }
+
+        function render(dados) {
             camadaFenomenos.clearLayers();
             const alertas = [...dados.inmet, ...(dados.noaa || [])];
 
             alertas.forEach(a => {
                 const titulo = a.title?.[0] || a.properties?.event || "Alerta";
-                const desc = a.description?.[0] || a.properties?.headline || "";
-                const cor = getCorSeveridade(titulo);
+                const cor = getCor(titulo);
                 const lat = a.lat || -15.79;
                 const lon = a.lon || -47.88;
 
-                // MANCHA GRADATIVA
                 const mancha = L.circle([lat, lon], {
                     radius: 120000, color: cor, fillColor: cor, fillOpacity: 0.5,
-                    interactive: modoStormChaser 
+                    interactive: modoStormChaser
                 }).addTo(camadaFenomenos);
 
                 if (modoStormChaser) {
+                    const analise = getAnalyse(titulo);
                     mancha.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
-                        abrirPainelFull(`<h1>${titulo}</h1><p><b>Estágio:</b> Cumulonimbus</p><p><b>Rota:</b> Prevista</p><p>${desc}</p>`, "#1a1a1a");
+                        abrirPainelFull(`
+                            <h1 style="color:${cor}">STORM CHASER ANALYTICS</h1>
+                            <p><b>Fenômeno:</b> ${titulo}</p>
+                            <p><b>Nuvem:</b> ${analise.tipo}</p>
+                            <p><b>Altitude:</b> ${analise.alt}</p>
+                            <p><b>Rota:</b> ${analise.rota} | <b>Vel:</b> ${analise.vel}</p>
+                        `, "#0a0a0a");
                     });
                 }
 
-                // ÍCONES COLORIDOS
                 L.marker([lat, lon], {
-                    icon: L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'icon-color', iconSize: [50, 50] })
-                }).addTo(camadaFenomenos).on('click', () => abrirPainelFull(`<h2>${titulo}</h2><p>${desc}</p>`, "#001a33"));
+                    icon: L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'fix-color', iconSize: [50, 50] })
+                }).addTo(camadaFenomenos).on('click', () => abrirPainelFull(`<h2>${titulo}</h2><p>${a.description?.[0] || ""}</p>`, "#001a33"));
             });
         }
 
-        function setCamada(nome) {
-            modoStormChaser = (nome === 'StormChaser');
-            carregarDados();
+        function setCamada(n) {
+            modoStormChaser = (n === 'StormChaser');
+            carregar();
             toggleMenu();
         }
 
@@ -135,7 +146,7 @@
         }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
-        carregarDados();
+        carregar();
     </script>
 </body>
 </html>
