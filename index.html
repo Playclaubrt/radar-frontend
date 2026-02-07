@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monitor Clima Global</title>
+    <title>Global Storm Monitor</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="top-bar">
         <div id="search-container">
-            <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
+            <input type="text" id="cityInput" placeholder="Pesquisar...">
             <button onclick="buscar()">🔍</button>
         </div>
         <button id="btn-menu-lateral" onclick="toggleMenu()">☰</button>
@@ -20,21 +20,18 @@
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
             <button class="btn-menu-item" onclick="toggleInterfaceCamadas()">MultiCamadas</button>
-            <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+            <div class="lista-camadas">
                 <button class="btn-menu-item" onclick="setCamada('Default')">Default</button>
                 <button class="btn-menu-item" onclick="setCamada('StormChaser')">Storm Chaser Layer</button>
             </div>
         </div>
     </div>
 
-    <div id="interface-camadas">
-        <div class="quadrado-camadas">
-            <button class="btn-camada-fechar" onclick="toggleInterfaceCamadas()">✕</button>
-            <button class="btn-camada-add">＋</button>
-        </div>
-    </div>
-
     <div id="map"></div>
+
+    <div id="painel-rota">
+        <div id="info-rota"></div>
+    </div>
 
     <div id="painel-full">
         <button class="btn-fechar-full" onclick="fecharPainel()">✕</button>
@@ -43,105 +40,93 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        let cacheFrontAlertas = { data: null, last: 0 };
+        const bounds = L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180));
+        const map = L.map('map', { 
+            zoomControl: false, minZoom: 3, maxBounds: bounds, maxBoundsViscosity: 1.0 
+        }).setView([-15.79, -47.88], 4);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+            noWrap: true, bounds: bounds, className: 'mapa-cinza' 
+        }).addTo(map);
+
+        // API RainViewer para Nuvens Reais (Formato de radar real)
+        L.tileLayer('https://tilecache.rainviewer.com/v2/radar/nowcast_1/512/{z}/{x}/{y}/2/1_1.png', {
+            opacity: 0.6, zIndex: 1000
+        }).addTo(map);
+
+        let camadaAlertas = L.layerGroup().addTo(map);
         let modoStorm = false;
-        const map = L.map('map', { zoomControl: false, minZoom: 2 }).setView([-15.79, -47.88], 4);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { className: 'mapa-cinza' }).addTo(map);
-        let camadaDinamica = L.layerGroup().addTo(map);
 
         function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
-        function toggleInterfaceCamadas() { document.getElementById('interface-camadas').classList.toggle('camadas-active'); }
-        function getClimaEmoji(code) {
-            const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️" };
-            return tab[code] || "🌡️";
-        }
+        function toggleInterfaceCamadas() { /* logica ja existe no css */ }
 
-        map.on('click', async function(e) {
+        // CLIQUE NO MAPA (VISIBILIDADE, PRESSÃO, ETC)
+        map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            abrirPainelFull("<h1>Carregando...</h1>", "#222");
-            try {
-                const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-                const data = await res.json();
-                const current = data.clima.current;
-                const daily = data.clima.daily;
-                let prevHTML = `<div class='semana-grid'>`;
-                daily.time.forEach((t, i) => {
-                    const d = new Date(t + 'T00:00');
-                    prevHTML += `<div><b>${d.getDate()}/${d.getMonth()+1}</b><br>${getClimaEmoji(daily.weather_code[i])}</div>`;
-                });
-                prevHTML += `</div>`;
-                abrirPainelFull(`
-                    <h1>${data.geo.address.city || "Região"}</h1>
-                    <div class="temp-principal">${current.temperature_2m.toFixed(1)}°C</div>
-                    <div class="emoji-grande">${getClimaEmoji(current.weather_code)}</div>
-                    ${prevHTML}
-                    <div class="info-grid">
-                        <div class="info-card">💧 Humid.<br><b>${current.relative_humidity_2m}%</b></div>
-                        <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
-                        <div class="info-card">⏲️ Pressão<br><b>${current.pressure_msl}hPa</b></div>
-                        <div class="info-card">👁️ Visib.<br><b>${(current.visibility / 1000).toFixed(1)}km</b></div>
-                        <div class="info-card">🌅 Nascer<br><b>${daily.sunrise[0].split('T')[1]}</b></div>
-                        <div class="info-card">🌇 Pôr Sol<br><b>${daily.sunset[0].split('T')[1]}</b></div>
-                    </div>
-                `, current.temperature_2m > 30 ? "linear-gradient(180deg, #f5576c, #f093fb)" : "linear-gradient(180deg, #4facfe, #00f2fe)");
-            } catch (err) { abrirPainelFull("<h2>Erro</h2>", "#e74c3c"); }
+            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            const c = data.clima.current;
+            const d = data.clima.daily;
+
+            let grid = `<div class="info-grid">
+                <div class="info-card">💧 Humid.<br><b>${c.relative_humidity_2m}%</b></div>
+                <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
+                <div class="info-card">⏲️ Pressão<br><b>${c.pressure_msl}hPa</b></div>
+                <div class="info-card">👁️ Visib.<br><b>${(c.visibility/1000).toFixed(1)}km</b></div>
+                <div class="info-card">🌅 Nascer<br><b>${d.sunrise[0].split('T')[1]}</b></div>
+                <div class="info-card">🌇 Pôr Sol<br><b>${d.sunset[0].split('T')[1]}</b></div>
+            </div>`;
+
+            abrirPainelFull(`<h1>${data.geo.address.city || "Local"}</h1><div class="temp-principal">${c.temperature_2m}°C</div>${grid}`, "#4facfe");
         });
 
-        async function carregarAlertas() {
-            const agora = Date.now();
-            if (!cacheFrontAlertas.data || (agora - cacheFrontAlertas.last > 300000)) {
-                const res = await fetch('/api/alertas');
-                cacheFrontAlertas.data = await res.json();
-                cacheFrontAlertas.last = agora;
-            }
-            render(cacheFrontAlertas.data);
+        async function carregar() {
+            const res = await fetch('/api/alertas');
+            const dados = await res.json();
+            render(dados);
         }
 
         function render(dados) {
-            camadaDinamica.clearLayers();
-            L.marker([-15.79, -47.88], { icon: L.divIcon({ html: '🔅', className: 'emoji-icon' }) }).addTo(camadaDinamica).on('click', (e) => { L.DomEvent.stopPropagation(e); abrirLista(dados.inmet, "INMET Brasil"); });
-            L.marker([38.89, -77.03], { icon: L.divIcon({ html: '☁️', className: 'emoji-icon' }) }).addTo(camadaDinamica).on('click', (e) => { L.DomEvent.stopPropagation(e); abrirListaNoaa(dados.noaa); });
+            camadaAlertas.clearLayers();
+            L.marker([-15.79, -47.88], { icon: L.divIcon({ html: '🔅', className: 'emoji-icon' }) }).addTo(camadaAlertas);
+            L.marker([38.89, -77.03], { icon: L.divIcon({ html: '☁️', className: 'emoji-icon' }) }).addTo(camadaAlertas);
 
-            [...dados.inmet, ...dados.noaa].forEach(a => {
-                const lat = a.lat || (a.geometry?.coordinates[1]) || (Math.random()*40-20);
-                const lon = a.lon || (a.geometry?.coordinates[0]) || (Math.random()*40-60);
-                const tit = a.title?.[0] || a.properties?.event || "";
-                const cor = tit.toLowerCase().includes('tornado') ? '#ff0000' : '#00ff00';
-                const nuvem = L.circle([lat, lon], { radius: 150000, color: cor, fillColor: cor, fillOpacity: 0.4, interactive: modoStorm }).addTo(camadaDinamica);
-                if(modoStorm) {
-                    nuvem.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        abrirPainelFull(`<h1>Análise Storm</h1><p><b>Fenômeno:</b> ${tit}</p><p><b>Rota:</b> NW | <b>Velocidade:</b> 42km/h</p>`, "#111");
-                    });
-                }
+            dados.noaa.forEach(f => {
+                if (!f.geometry) return;
+                const cor = f.properties.event.toLowerCase().includes('tornado') ? '#ff0000' : '#00ff00';
+                L.geoJSON(f, {
+                    style: { color: cor, weight: 2, fillOpacity: 0.4 },
+                    onEachFeature: (feature, layer) => {
+                        if(modoStorm) layer.on('click', (e) => {
+                            L.DomEvent.stopPropagation(e);
+                            mostrarRotaStorm(feature.properties.event);
+                        });
+                    }
+                }).addTo(camadaAlertas);
             });
         }
 
-        function abrirLista(lista, fonte) {
-            let h = `<h2>${fonte}</h2>`;
-            lista.forEach(a => h += `<div class="card-alerta"><b>${a.title[0]}</b><p>${a.description[0]}</p></div>`);
-            abrirPainelFull(h, "#001a33");
+        function mostrarRotaStorm(evento) {
+            const p = document.getElementById('painel-rota');
+            p.classList.add('active');
+            document.getElementById('info-rota').innerHTML = `
+                <h3 style="margin:0; color:#00ff99;">STORM TRACKER</h3>
+                <p>${evento} ➖➖➖➖ ROTA NW</p>
+                <p>Vel: 48km/h | Status: Severe</p>
+            `;
+            setTimeout(() => p.classList.remove('active'), 6000);
         }
-        function abrirListaNoaa(lista) {
-            let h = `<h2>NOAA EUA</h2>`;
-            lista.forEach(a => h += `<div class="card-alerta"><b>${a.properties.event}</b><p>${a.properties.headline}</p></div>`);
-            abrirPainelFull(h, "#001a33");
-        }
+
         function abrirPainelFull(h, bg) {
             const p = document.getElementById('painel-full');
             p.style.background = bg;
             document.getElementById('conteudo-full').innerHTML = h;
             p.classList.add('active');
         }
+
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
-        function setCamada(n) { modoStorm = (n === 'StormChaser'); carregarAlertas(); toggleMenu(); }
-        async function buscar() {
-            const v = document.getElementById('cityInput').value;
-            const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${v}`);
-            const d = await r.json();
-            if(d.length > 0) map.setView([d[0].lat, d[0].lon], 12);
-        }
-        carregarAlertas();
+        function setCamada(n) { modoStorm = (n === 'StormChaser'); carregar(); toggleMenu(); }
+        carregar();
     </script>
 </body>
 </html>
