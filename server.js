@@ -43,4 +43,4 @@ app.get('/api/clima-clique', async (req, res) => {
     } catch (e) { res.status(500).send("Erro"); }
 });
 
-app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor na porta ${PORT}`));
