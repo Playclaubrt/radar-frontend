@@ -37,10 +37,8 @@ app.get('/api/clima-clique', async (req, res) => {
             axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`),
             axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, { headers: {'User-Agent': 'Monitor'} })
         ]);
-        const total = { clima: clima.value.data, ar: ar.value.data, geo: geo.value.data };
-        cacheClima.set(key, { data: total, last: agora });
-        res.json(total);
+        res.json({ clima: clima.value.data, ar: ar.value.data, geo: geo.value.data });
     } catch (e) { res.status(500).send("Erro"); }
 });
 
-app.listen(PORT, () => console.log(`Servidor na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Rodando em http://localhost:${PORT}`));
