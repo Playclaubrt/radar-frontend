@@ -9,7 +9,7 @@
 </head>
 <body>
     <div id="top-bar">
-        <div id="search-container"><input type="text" id="cityInput" placeholder="Pesquisar..."><button onclick="buscar()">🔍</button></div>
+        <div id="search-container"><input type="text" id="cityInput" placeholder="Pesquisar..."><button id="btnBuscar">🔍</button></div>
         <button id="btn-menu-lateral" onclick="toggleMenu()">☰</button>
     </div>
 
@@ -31,13 +31,12 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_KEY = "7609a59c493758162d9b0a6af2914e1f";
+        const API_KEY = "7609a59c493758162d9b0a6af2914e1f"; // Coloque sua chave OpenWeather aqui
         const map = L.map('map', { zoomControl: false, minZoom: 3 }).setView([-15.79, -47.88], 4);
 
         const tileCinza = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { className: 'mapa-cinza', noWrap: true }).addTo(map);
         const tileSateliteReal = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { noWrap: true });
         
-        // Nuvens: Infravermelho (Default/Storm) vs Clássicas (Satelite)
         const nuvensIR = L.tileLayer(`https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.8, zIndex: 10 }).addTo(map);
         const nuvensClassicas = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.7, zIndex: 10 });
         
@@ -48,13 +47,8 @@
         function setCamada(tipo) {
             map.removeLayer(tileCinza); map.removeLayer(tileSateliteReal);
             map.removeLayer(nuvensIR); map.removeLayer(nuvensClassicas);
-            camadaRota.clearLayers();
-
-            if (tipo === 'Satelite') {
-                tileSateliteReal.addTo(map); nuvensClassicas.addTo(map);
-            } else {
-                tileCinza.addTo(map); nuvensIR.addTo(map);
-            }
+            if (tipo === 'Satelite') { tileSateliteReal.addTo(map); nuvensClassicas.addTo(map); }
+            else { tileCinza.addTo(map); nuvensIR.addTo(map); }
             modoStorm = (tipo === 'StormChaser');
             toggleMenu();
         }
@@ -67,12 +61,12 @@
 
             if (modoStorm) {
                 desenharRotaMapa(e.latlng.lat, e.latlng.lng);
-                abrirPainelStorm(c); return;
+                abrirPainelStorm(c, e.latlng.lat); return;
             }
 
             abrirPainelFull(`
-                <h1>${data.geo.address.city || "Local"}</h1>
-                <div class="temp-principal">${c.temperature_2m}°C</div>
+                <h1>${data.geo.address.city || "Localização"}</h1>
+                <div class="temp-principal">${Math.round(c.temperature_2m)}°C</div>
                 <div class="info-grid">
                     <div class="info-card">💧 Humid.<br><b>${c.relative_humidity_2m}%</b></div>
                     <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
@@ -80,34 +74,36 @@
                     <div class="info-card">👁️ Visib.<br><b>${(c.visibility/1000).toFixed(1)}km</b></div>
                     <div class="info-card">🌅 Nascer<br><b>${d.sunrise[0].split('T')[1]}</b></div>
                     <div class="info-card">🌇 Pôr Sol<br><b>${d.sunset[0].split('T')[1]}</b></div>
+                    <div class="info-card">🚩 Vento<br><b>${c.wind_speed_10m}km/h</b></div>
+                    <div class="info-card">📅 Previsão 14d<br><b>Máx ${Math.max(...d.weather_code)}</b></div>
                 </div>
             `, "#001a33");
         });
 
-        function desenharRotaMapa(lat, lng) {
-            camadaRota.clearLayers();
-            for(let i=1; i<6; i++) {
-                L.marker([lat + (i*0.3), lng + (i*0.3)], {
-                    icon: L.divIcon({ html: '<b style="color:#00ff99;font-size:20px;text-shadow:0 0 5px #000;">➖</b>', className: 'rota-icon' })
-                }).addTo(camadaRota);
-            }
-        }
-
-        function abrirPainelStorm(c) {
-            let tipo = "Cumulus"; let altura = "Baixo";
-            if(c.wind_speed_10m > 45) { tipo = "Supercélula"; altura = "Alto"; }
-            else if(c.pressure_msl < 1004) { tipo = "Shelf Cloud"; altura = "Médio"; }
-            else if(c.relative_humidity_2m > 88) { tipo = "Mammatus"; altura = "Médio/Alto"; }
-            else if(c.wind_speed_10m > 25) { tipo = "Stratocumulus"; altura = "Baixo/Médio"; }
+        function abrirPainelStorm(c, lat) {
+            let tipo = "Cumulus";
+            if(c.wind_speed_10m > 48) tipo = "Supercélula";
+            else if(c.pressure_msl < 1003) tipo = "Shelf Cloud";
+            else if(Math.abs(lat) > 30 && c.relative_humidity_2m > 85) tipo = "Mammatus";
+            else if(c.wind_speed_10m > 28) tipo = "Stratocumulus";
 
             document.getElementById('painel-rota').classList.add('active');
             document.getElementById('info-rota').innerHTML = `
-                <div style="font-size:15px; line-height:1.4;">
-                    <b style="color:#00ff99;">TIPO:</b> ${tipo} | <b style="color:#00ff99;">KM/h:</b> ${c.wind_speed_10m}km/h<br>
-                    <b style="color:#00ff99;">ALTURA:</b> ${altura} | <b style="color:#00ff99;">DIREÇÃO:</b> ${c.wind_direction_10m > 180 ? 'S' : 'N'}
+                <div style="font-size:15px; font-weight:bold;">
+                    TIPO: <span style="color:#00ff99;">${tipo}</span> | KM/h: <span style="color:#00ff99;">${c.wind_speed_10m}</span><br>
+                    ALTURA: ${c.pressure_msl < 1005 ? 'Alto' : 'Médio'} | DIREÇÃO: ${c.wind_direction_10m > 180 ? 'S' : 'N'}
                 </div>
             `;
             setTimeout(() => document.getElementById('painel-rota').classList.remove('active'), 6000);
+        }
+
+        function desenharRotaMapa(lat, lng) {
+            camadaRota.clearLayers();
+            for(let i=1; i<8; i++) {
+                L.marker([lat + (i*0.25), lng + (i*0.25)], {
+                    icon: L.divIcon({ html: '<b style="color:#00ff99; font-size:22px; text-shadow: 0 0 5px #000;">➖</b>', className: 'rota-icon' })
+                }).addTo(camadaRota);
+            }
         }
 
         async function carregarAlertas() {
@@ -117,17 +113,21 @@
             
             L.marker([-15.79, -47.88], { icon: L.divIcon({ html: '🔅', className: 'emoji-icon' }) }).addTo(camadaAlertas).on('click', (e) => {
                 L.DomEvent.stopPropagation(e);
-                abrirPainelFull("<h2>Alertas INMET 🔅</h2>" + d.inmet.map(a => `<div class="card-alerta">${a.title[0]}</div>`).join(''), "#001a33");
+                let h = `<h2 style="color:#00ff99">ALERTAS INMET</h2>`;
+                d.inmet.forEach(a => h += `<div class="alerta-lista-item">${a.title[0]}</div>`);
+                abrirPainelFull(h, "#001a33");
             });
 
             L.marker([38.89, -77.03], { icon: L.divIcon({ html: '☁️', className: 'emoji-icon' }) }).addTo(camadaAlertas).on('click', (e) => {
                 L.DomEvent.stopPropagation(e);
-                abrirPainelFull("<h2>Alertas NOAA ☁️</h2>" + d.noaa.map(a => `<div class="card-alerta">${a.properties.event}</div>`).join(''), "#001a33");
+                let h = `<h2 style="color:#00ff99">ALERTAS NOAA</h2>`;
+                d.noaa.forEach(a => h += `<div class="alerta-lista-item">${a.properties.event}</div>`);
+                abrirPainelFull(h, "#001a33");
             });
         }
 
         function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
-        function abrirPainelFull(h, bg) { const p = document.getElementById('painel-full'); p.style.background = bg; document.getElementById('conteudo-full').innerHTML = h; p.classList.add('active'); }
+        function abrirPainelFull(h, bg) { document.getElementById('painel-full').style.backgroundColor = bg; document.getElementById('conteudo-full').innerHTML = h; document.getElementById('painel-full').classList.add('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
         carregarAlertas();
     </script>
