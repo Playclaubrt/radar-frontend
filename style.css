@@ -1,16 +1,15 @@
 body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
 
-/* FILTRO CINZA APENAS NO FUNDO DO MAPA */
-.map-tiles-cinza {
-    filter: grayscale(100%) brightness(0.6) contrast(1.1) !important;
+/* FILTRO CINZA QUE PROTEGE OS EMOJIS */
+.mapa-base-cinza {
+    filter: grayscale(100%) brightness(0.6) contrast(1.2) !important;
 }
 
 #map { height: 100vh; width: 100vw; z-index: 1; background: #000; }
 
-/* GARANTE QUE OS EMOJIS SEJAM COLORIDOS */
-.icon-color {
+.fix-color {
     filter: none !important;
-    z-index: 2000 !important;
+    z-index: 9999 !important;
 }
 
 #btn-menu-lateral {
@@ -34,7 +33,7 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
 .conteudo-menu { padding: 80px 20px; }
 .btn-menu-item {
     background: #00ff99; color: #001a33; border: none; padding: 15px;
-    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;
+    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 5px;
 }
 
 #interface-camadas {
