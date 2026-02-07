@@ -15,12 +15,20 @@
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
             <button class="btn-menu-item" onclick="toggleInterfaceCamadas()">MultiCamadas</button>
+            <p style="margin-top:20px; color: #00ff99; font-weight: bold;">Camada Ativa: <span id="camada-nome">Default</span></p>
         </div>
     </div>
 
     <div id="interface-camadas">
         <div class="quadrado-camadas">
             <button class="btn-camada-fechar" onclick="toggleInterfaceCamadas()">✕</button>
+            <div class="lista-camadas">
+                <button class="opt-camada" onclick="setCamada('Default')">Default</button>
+                <button class="opt-camada" onclick="setCamada('StormChaser')">Storm Chaser Layer</button>
+                <button class="opt-camada disabled">Camada 3</button>
+                <button class="opt-camada disabled">Camada 4</button>
+                <button class="opt-camada disabled">Camada 5</button>
+            </div>
             <button class="btn-camada-add">＋</button>
         </div>
     </div>
@@ -39,75 +47,74 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // ADICIONADO: Definição dos limites mundiais para evitar fundo cinza
         const bounds = L.latLngBounds(L.latLng(-89.9, -180), L.latLng(89.9, 180));
-
         const map = L.map('map', { 
-            zoomControl: false,
-            minZoom: 2, // ADICIONADO: Impede ver o mapa pequeno demais e o fundo cinza
-            maxBounds: bounds, // ADICIONADO: Trava o arrasto
-            maxBoundsViscosity: 1.0 // ADICIONADO: Faz o mapa "quicar" de volta se tentar sair
+            zoomControl: false, minZoom: 2, maxBounds: bounds, maxBoundsViscosity: 1.0 
         }).setView([-15.7938, -47.8827], 4);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            noWrap: true, // ADICIONADO: Impede que o mundo se repita horizontalmente
-            bounds: bounds
+            noWrap: true, bounds: bounds
         }).addTo(map);
 
-        const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [50, 50] });
-        const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [50, 50] });
-
-        let alertasGlobais = { inmet: [], noaa: [] };
+        let camadaAtual = 'Default';
+        let layerFenomenos = L.layerGroup().addTo(map);
 
         function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
         function toggleInterfaceCamadas() { document.getElementById('interface-camadas').classList.toggle('camadas-active'); }
 
-        function getClimaEmoji(code) {
-            const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️" };
-            return tab[code] || "🌡️";
+        // LÓGICA DE CORES GRADATIVAS REAIS
+        function getCor(texto) {
+            const t = texto.toLowerCase();
+            if (t.includes('tornado') || t.includes('furacão')) return '#ff0000'; // Vermelho
+            if (t.includes('tempestade') || t.includes('severo')) return '#ff7700'; // Laranja
+            if (t.includes('chuva') || t.includes('moderado')) return '#ffff00'; // Amarelo
+            return '#00ff00'; // Verde
         }
 
-        map.on('click', async function(e) {
-            const { lat, lng } = e.latlng;
-            abrirPainelFull("<h3>Carregando...</h3>", "linear-gradient(180deg, #2c3e50 0%, #000 100%)");
-            try {
-                const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-                const data = await res.json();
-                const current = data.clima.current;
-                const daily = data.clima.daily;
-                const temAlerta = alertasGlobais.inmet.length > 0 || alertasGlobais.noaa.length > 0;
-                
-                let prevHTML = `<div class='semana-grid' style='flex-wrap: wrap; gap: 10px;'>`;
-                daily.time.forEach((t, i) => {
-                    const d = new Date(t + 'T00:00');
-                    prevHTML += `<div style='min-width: 60px;'><b>${d.getDate()}/${d.getMonth()+1}</b><br>${getClimaEmoji(daily.weather_code[i])}</div>`;
-                });
-                prevHTML += `</div>`;
-
-                let html = `
-                    <h1>${data.geo.address.city || "Região"}</h1>
-                    <div class="temp-principal">${current.temperature_2m.toFixed(1)}°C</div>
-                    <div onclick="exibirAlertaGeral()" style="cursor:pointer; font-size: 2.2rem; margin-bottom: 10px;">${temAlerta ? '🔵' : '⭕'}</div>
-                    <div class="emoji-grande">${getClimaEmoji(current.weather_code)}</div>
-                    ${prevHTML}
-                    <div class="info-grid">
-                        <div class="info-card">💧 Humid.<br><b>${current.relative_humidity_2m}%</b></div>
-                        <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
-                        <div class="info-card">⏲️ Pressão<br><b>${current.pressure_msl}hPa</b></div>
-                        <div class="info-card">👁️ Visib.<br><b>${(current.visibility / 1000).toFixed(1)}km</b></div>
-                        <div class="info-card">🌅 Nascer<br><b>${daily.sunrise[0].split('T')[1]}</b></div>
-                        <div class="info-card">🌇 Pôr Sol<br><b>${daily.sunset[0].split('T')[1]}</b></div>
-                    </div>
-                `;
-                abrirPainelFull(html, current.temperature_2m > 30 ? "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)" : "linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)");
-            } catch (err) { abrirPainelFull("<h2>Erro</h2>", "#e74c3c"); }
-        });
-
         async function carregarAlertas() {
-            const res = await fetch('/api/alertas');
-            alertasGlobais = await res.json();
-            if (alertasGlobais.inmet.length > 0) L.marker([-15.7938, -47.8827], {icon: iconInmet}).addTo(map).on('click', () => exibirAlertaLista(alertasGlobais.inmet, "INMET Brasil"));
-            if (alertasGlobais.noaa.length > 0) L.marker([38.8951, -77.0364], {icon: iconNoaa}).addTo(map).on('click', () => exibirAlertaListaNoaa(alertasGlobais.noaa));
+            try {
+                const res = await fetch('/api/alertas');
+                const dados = await res.json();
+                layerFenomenos.clearLayers();
+
+                const alertas = [...dados.inmet, ...(dados.noaa || [])];
+
+                alertas.forEach(a => {
+                    const titulo = a.title?.[0] || a.properties?.event || "Alerta";
+                    const desc = a.description?.[0] || a.properties?.headline || "";
+                    const cor = getCor(titulo);
+                    
+                    // Coordenadas (Usando fallback se não houver geo específica)
+                    const lat = a.lat || (a.properties?.centroid?.coordinates?.[1]) || -15.79;
+                    const lon = a.lon || (a.properties?.centroid?.coordinates?.[0]) || -47.88;
+
+                    // A MANCHA (Nuvem/Tempestade)
+                    const circulo = L.circle([lat, lon], {
+                        radius: 120000, color: cor, fillColor: cor, fillOpacity: 0.5,
+                        interactive: (camadaAtual === 'StormChaser') 
+                    }).addTo(layerFenomenos);
+
+                    // Clique na mancha só funciona no StormChaser
+                    circulo.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        abrirPainelFull(`<h1>${titulo}</h1><p>${desc}</p><hr><p><b>MODO STORM CHASER ATIVO</b></p>`, "linear-gradient(180deg, #1a1a1a, #000)");
+                    });
+
+                    // Marcador de Alerta (Sempre clicável)
+                    L.marker([lat, lon], {
+                        icon: L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [50, 50] })
+                    }).addTo(layerFenomenos).on('click', () => {
+                        abrirPainelFull(`<h1>${titulo}</h1><p>${desc}</p>`, "#001a33");
+                    });
+                });
+            } catch (e) { console.error("Erro ao carregar"); }
+        }
+
+        function setCamada(nome) {
+            camadaAtual = nome;
+            document.getElementById('camada-nome').innerText = nome;
+            carregarAlertas(); // Recarrega para aplicar a interatividade correta
+            toggleInterfaceCamadas();
         }
 
         function abrirPainelFull(h, bg) {
@@ -115,33 +122,11 @@
             p.style.background = bg;
             document.getElementById('conteudo-full').innerHTML = h;
             p.classList.add('active');
-            p.scrollTop = 0;
         }
 
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
-        function exibirAlertaLista(lista, fonte) {
-            let h = `<h2>${fonte}</h2><div style='text-align:left; overflow-y:auto; padding:10px;'>`;
-            lista.forEach(a => h += `<p><b>${a.title[0]}</b><br>${a.description[0]}</p><hr>`);
-            h += `</div>`;
-            abrirPainelFull(h, "#001a33");
-        }
-
-        function exibirAlertaListaNoaa(lista) {
-            let h = `<h2>NOAA EUA</h2><div style='text-align:left; overflow-y:auto; padding:10px;'>`;
-            lista.forEach(a => h += `<p><b>${a.properties.event}</b><br>${a.properties.headline}</p><hr>`);
-            h += `</div>`;
-            abrirPainelFull(h, "#001a33");
-        }
-
-        async function buscar() {
-            const v = document.getElementById('cityInput').value;
-            const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${v}`);
-            const d = await r.json();
-            if(d.length > 0) map.setView([d[0].lat, d[0].lon], 12);
-        }
-
-        carregarAlertas();
+        setCamada('Default');
     </script>
 </body>
 </html>
