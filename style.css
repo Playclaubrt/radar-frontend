@@ -1,6 +1,5 @@
 body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
 
-/* MAPA CINZA CONFORME PEDIDO */
 #map { 
     height: 100vh; width: 100vw; z-index: 1; 
     filter: grayscale(100%) brightness(0.7) contrast(1.1);
@@ -22,7 +21,7 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
 #menu-lateral-65 {
     position: fixed; top: 0; right: -70%; width: 65%; height: 100%;
     background-color: #001a33; border-left: 5px solid #00ff99;
-    z-index: 4000; transition: 0.4s ease-in-out;
+    z-index: 4000; transition: 0.4s ease-in-out; padding-top: 60px;
 }
 #menu-lateral-65.menu-active { right: 0; }
 
@@ -31,13 +30,13 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
     background: none; border: none; color: #00ff99; font-size: 30px;
 }
 
-.conteudo-menu { padding: 80px 20px; }
+.conteudo-menu { padding: 20px; }
 .btn-menu-item {
     background: #00ff99; color: #001a33; border: none; padding: 15px;
-    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;
+    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; text-align: left;
 }
 
-/* INTERFACE QUADRADA MULTICAMADAS */
+/* INTERFACE QUADRADA MULTICAMADAS (EMPILHAMENTO) */
 #interface-camadas {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(0,0,0,0.8); z-index: 5000;
@@ -47,16 +46,15 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
 #interface-camadas.camadas-active { visibility: visible; opacity: 1; }
 
 .quadrado-camadas {
-    width: 280px; background: white; border-radius: 20px;
-    position: relative; padding: 50px 20px 20px; display: flex; flex-direction: column; gap: 10px;
+    width: 300px; background: white; border-radius: 20px;
+    position: relative; padding: 50px 20px 20px; display: flex; flex-direction: column;
 }
 
-.lista-camadas { display: flex; flex-direction: column; gap: 8px; }
-.opt-camada { 
-    padding: 12px; border: 2px solid #001a33; border-radius: 10px; 
-    background: white; cursor: pointer; font-weight: bold;
+.lista-camadas { display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto; }
+.lista-camadas label { 
+    font-weight: bold; color: #001a33; display: flex; align-items: center; gap: 10px; cursor: pointer;
+    padding: 5px; border-bottom: 1px solid #eee;
 }
-.opt-camada.disabled { opacity: 0.3; cursor: not-allowed; }
 
 .btn-camada-fechar {
     position: absolute; top: 10px; right: 10px; background: #ff4c4c; 
@@ -65,7 +63,7 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
 
 .btn-camada-add {
     background: #001a33; color: white; border: none; width: 50px; height: 50px; 
-    border-radius: 50%; font-size: 30px; align-self: center; margin-top: 10px;
+    border-radius: 50%; font-size: 30px; align-self: center; margin-top: 15px;
 }
 
 .emoji-icon { font-size: 45px; display: flex; justify-content: center; align-items: center; }
