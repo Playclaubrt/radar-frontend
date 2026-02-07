@@ -8,7 +8,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname)));
 
 let cacheAlertas = { data: null, last: 0 };
-let cacheClima = new Map();
 
 app.get('/api/alertas', async (req, res) => {
     const agora = Date.now();
@@ -28,19 +27,14 @@ app.get('/api/alertas', async (req, res) => {
 
 app.get('/api/clima-clique', async (req, res) => {
     const { lat, lon } = req.query;
-    const key = `${parseFloat(lat).toFixed(2)}|${parseFloat(lon).toFixed(2)}`;
-    const agora = Date.now();
-    if (cacheClima.has(key) && (agora - cacheClima.get(key).last < 600000)) return res.json(cacheClima.get(key).data);
     try {
         const [clima, ar, geo] = await Promise.allSettled([
             axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,visibility,wind_speed_10m,wind_direction_10m&daily=sunrise,sunset&timezone=auto`),
             axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`),
             axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, { headers: {'User-Agent': 'Monitor'} })
         ]);
-        const total = { clima: clima.value.data, ar: ar.value.data, geo: geo.value.data };
-        cacheClima.set(key, { data: total, last: agora });
-        res.json(total);
+        res.json({ clima: clima.value.data, ar: ar.value.data, geo: geo.value.data });
     } catch (e) { res.status(500).send("Erro"); }
 });
 
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
