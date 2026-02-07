@@ -39,23 +39,21 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // ADICIONADO: Limites para o mapa não fugir da tela
-        const southWest = L.latLng(-89.981557, -180);
-        const northEast = L.latLng(89.993461, 180);
-        const bounds = L.latLngBounds(southWest, northEast);
+        // ADICIONADO: Definição dos limites mundiais para evitar fundo cinza
+        const bounds = L.latLngBounds(L.latLng(-89.9, -180), L.latLng(89.9, 180));
 
         const map = L.map('map', { 
             zoomControl: false,
-            maxBounds: bounds,
-            maxBoundsViscosity: 1.0 
+            minZoom: 2, // ADICIONADO: Impede ver o mapa pequeno demais e o fundo cinza
+            maxBounds: bounds, // ADICIONADO: Trava o arrasto
+            maxBoundsViscosity: 1.0 // ADICIONADO: Faz o mapa "quicar" de volta se tentar sair
         }).setView([-15.7938, -47.8827], 4);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            noWrap: true,
+            noWrap: true, // ADICIONADO: Impede que o mundo se repita horizontalmente
             bounds: bounds
         }).addTo(map);
 
-        // ÍCONES AUMENTADOS (iconSize: [50, 50])
         const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [50, 50] });
         const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [50, 50] });
 
