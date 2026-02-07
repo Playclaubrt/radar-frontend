@@ -1,5 +1,6 @@
+/* ADICIONADO: background #000 para que qualquer fresta mínima seja preta e n cinza */
 body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
-#map { height: 100vh; width: 100vw; z-index: 1; }
+#map { height: 100vh; width: 100vw; z-index: 1; background: #000; }
 
 #search-container {
     position: absolute; top: 15px; left: 15px; width: 250px; z-index: 1000; 
@@ -14,9 +15,8 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
     width: 45px; height: 45px; border-radius: 8px; font-size: 24px; cursor: pointer;
 }
 
-/* EMOJI DO MAPA AUMENTADO */
 .emoji-icon { 
-    font-size: 40px; /* Era 24px, aumentei para 40px */
+    font-size: 40px; 
     text-align: center; 
     display: flex;
     justify-content: center;
