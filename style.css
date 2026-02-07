@@ -1,66 +1,25 @@
-body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
-
-/* FILTRO CINZA QUE PROTEGE OS EMOJIS */
-.mapa-base-cinza {
-    filter: grayscale(100%) brightness(0.6) contrast(1.2) !important;
-}
-
+body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; background: #000; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; background: #000; }
+.mapa-cinza { filter: grayscale(100%) brightness(0.6) contrast(1.2) !important; }
+.emoji-icon { font-size: 50px; display: flex; justify-content: center; align-items: center; filter: none !important; }
 
-.fix-color {
-    filter: none !important;
-    z-index: 9999 !important;
-}
-
-#btn-menu-lateral {
-    position: absolute; top: 20px; right: 20px; z-index: 2000;
-    background: #001a33; color: #00ff99; border: 2px solid #00ff99;
-    width: 45px; height: 45px; border-radius: 8px; font-size: 24px; cursor: pointer;
-}
-
-#menu-lateral-65 {
-    position: fixed; top: 0; right: -70%; width: 65%; height: 100%;
-    background-color: #001a33; border-left: 5px solid #00ff99;
-    z-index: 4000; transition: 0.4s ease-in-out;
-}
+#menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background: #001a33; border-left: 5px solid #00ff99; z-index: 4000; transition: 0.4s; }
 #menu-lateral-65.menu-active { right: 0; }
+.btn-fechar-menu { position: absolute; top: 20px; left: 20px; background: none; border: none; color: #00ff99; font-size: 30px; }
+.btn-menu-item { background: #00ff99; border: none; padding: 15px; width: 100%; font-weight: bold; border-radius: 8px; cursor: pointer; }
 
-.btn-fechar-menu {
-    position: absolute; top: 20px; left: 20px;
-    background: none; border: none; color: #00ff99; font-size: 30px;
-}
-
-.conteudo-menu { padding: 80px 20px; }
-.btn-menu-item {
-    background: #00ff99; color: #001a33; border: none; padding: 15px;
-    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 5px;
-}
-
-#interface-camadas {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.6); z-index: 5000;
-    display: flex; align-items: center; justify-content: center;
-    visibility: hidden; opacity: 0; transition: 0.3s;
-}
-#interface-camadas.camadas-active { visibility: visible; opacity: 1; }
-
-.quadrado-camadas {
-    width: 280px; height: 280px; background: white; border-radius: 15px;
-    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
-}
-.btn-camada-fechar {
-    position: absolute; top: 10px; right: 10px; background: #ff4c4c; 
-    color: white; border: none; width: 35px; height: 35px; border-radius: 8px; cursor: pointer;
-}
-.btn-camada-add {
-    background: #001a33; color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 40px; cursor: pointer;
-}
-
-#painel-full {
-    position: fixed; top: 100%; left: 0; width: 100%; height: 100%;
-    z-index: 6000; transition: top 0.4s; color: white;
-    padding: 60px 20px; box-sizing: border-box;
-    display: flex; flex-direction: column; align-items: center; overflow-y: auto; text-align: center;
-}
+#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 6000; transition: 0.4s; color: white; display: flex; flex-direction: column; text-align: center; }
 #painel-full.active { top: 0; }
-.emoji-icon { font-size: 45px; display: flex; justify-content: center; align-items: center; }
+.btn-fechar-full { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.3); border: none; color: white; width: 45px; height: 45px; border-radius: 50%; z-index: 7000; }
+.scroll-area { padding: 80px 20px 20px; overflow-y: auto; flex: 1; }
+
+.temp-principal { font-size: 4rem; font-weight: bold; }
+.semana-grid { display: flex; overflow-x: auto; gap: 15px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 15px; margin: 15px 0; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.info-card { background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; }
+.card-alerta { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: left; border-left: 4px solid #00ff99; }
+
+#interface-camadas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 5000; display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; }
+#interface-camadas.camadas-active { visibility: visible; opacity: 1; }
+.quadrado-camadas { width: 280px; height: 280px; background: white; border-radius: 15px; position: relative; display: flex; align-items: center; justify-content: center; }
+.btn-camada-fechar { position: absolute; top: 10px; right: 10px; background: #ff4c4c; border: none; width: 35px; height: 35px; border-radius: 8px; color: white; }
