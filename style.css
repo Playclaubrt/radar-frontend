@@ -1,16 +1,17 @@
 body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
 
-#map { 
-    height: 100vh; width: 100vw; z-index: 1; 
-    filter: grayscale(100%) brightness(0.7) contrast(1.1);
+/* FILTRO CINZA APENAS NO FUNDO DO MAPA */
+.map-tiles-cinza {
+    filter: grayscale(100%) brightness(0.6) contrast(1.1) !important;
 }
 
-#search-container {
-    position: absolute; top: 15px; left: 15px; width: 250px; z-index: 1000; 
-    background: white; display: flex; padding: 10px; border-radius: 12px;
+#map { height: 100vh; width: 100vw; z-index: 1; background: #000; }
+
+/* GARANTE QUE OS EMOJIS SEJAM COLORIDOS */
+.icon-color {
+    filter: none !important;
+    z-index: 2000 !important;
 }
-#search-container input { flex: 1; border: none; outline: none; }
-#search-container button { background: none; border: none; font-size: 18px; cursor: pointer; }
 
 #btn-menu-lateral {
     position: absolute; top: 20px; right: 20px; z-index: 2000;
@@ -21,7 +22,7 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
 #menu-lateral-65 {
     position: fixed; top: 0; right: -70%; width: 65%; height: 100%;
     background-color: #001a33; border-left: 5px solid #00ff99;
-    z-index: 4000; transition: 0.4s ease-in-out; padding-top: 60px;
+    z-index: 4000; transition: 0.4s ease-in-out;
 }
 #menu-lateral-65.menu-active { right: 0; }
 
@@ -30,50 +31,37 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
     background: none; border: none; color: #00ff99; font-size: 30px;
 }
 
-.conteudo-menu { padding: 20px; }
+.conteudo-menu { padding: 80px 20px; }
 .btn-menu-item {
     background: #00ff99; color: #001a33; border: none; padding: 15px;
-    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; text-align: left;
+    border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;
 }
 
-/* INTERFACE QUADRADA MULTICAMADAS (EMPILHAMENTO) */
 #interface-camadas {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.8); z-index: 5000;
+    background: rgba(0,0,0,0.6); z-index: 5000;
     display: flex; align-items: center; justify-content: center;
     visibility: hidden; opacity: 0; transition: 0.3s;
 }
 #interface-camadas.camadas-active { visibility: visible; opacity: 1; }
 
 .quadrado-camadas {
-    width: 300px; background: white; border-radius: 20px;
-    position: relative; padding: 50px 20px 20px; display: flex; flex-direction: column;
+    width: 280px; height: 280px; background: white; border-radius: 15px;
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-
-.lista-camadas { display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto; }
-.lista-camadas label { 
-    font-weight: bold; color: #001a33; display: flex; align-items: center; gap: 10px; cursor: pointer;
-    padding: 5px; border-bottom: 1px solid #eee;
-}
-
 .btn-camada-fechar {
     position: absolute; top: 10px; right: 10px; background: #ff4c4c; 
     color: white; border: none; width: 35px; height: 35px; border-radius: 8px; cursor: pointer;
 }
-
 .btn-camada-add {
-    background: #001a33; color: white; border: none; width: 50px; height: 50px; 
-    border-radius: 50%; font-size: 30px; align-self: center; margin-top: 15px;
+    background: #001a33; color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 40px; cursor: pointer;
 }
-
-.emoji-icon { font-size: 45px; display: flex; justify-content: center; align-items: center; }
 
 #painel-full {
     position: fixed; top: 100%; left: 0; width: 100%; height: 100%;
-    z-index: 6000; transition: top 0.4s; color: white; padding: 40px 20px; text-align: center; overflow-y: auto;
+    z-index: 6000; transition: top 0.4s; color: white;
+    padding: 60px 20px; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; overflow-y: auto; text-align: center;
 }
 #painel-full.active { top: 0; }
-.btn-fechar-full {
-    position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); 
-    border: none; color: white; width: 45px; height: 45px; border-radius: 50%;
-}
+.emoji-icon { font-size: 45px; display: flex; justify-content: center; align-items: center; }
