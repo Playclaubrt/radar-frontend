@@ -7,14 +7,11 @@ const app = express();
 app.use(express.static(path.join(__dirname)));
 
 let cacheAlertas = { data: null, lastUpdate: 0 };
-const ALERTAS_MS = 30000; 
-
 let cacheClima = new Map();
-const CLIMA_MS = 10000; 
 
 app.get('/api/alertas', async (req, res) => {
     const agora = Date.now();
-    if (cacheAlertas.data && (agora - cacheAlertas.lastUpdate < ALERTAS_MS)) return res.json(cacheAlertas.data);
+    if (cacheAlertas.data && (agora - cacheAlertas.lastUpdate < 30000)) return res.json(cacheAlertas.data);
     try {
         const [resInmet, resNoaa] = await Promise.allSettled([
             axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/'),
@@ -31,16 +28,14 @@ app.get('/api/alertas', async (req, res) => {
 app.get('/api/clima-clique', async (req, res) => {
     const { lat, lon } = req.query;
     const key = `${lat}|${lon}`;
-    const agora = Date.now();
-    if (cacheClima.has(key) && (agora - cacheClima.get(key).last < CLIMA_MS)) return res.json(cacheClima.get(key).data);
+    if (cacheClima.has(key) && (Date.now() - cacheClima.get(key).last < 10000)) return res.json(cacheClima.get(key).data);
     try {
-        const [clima, ar, geo] = await Promise.allSettled([
-            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,visibility,wind_speed_10m&daily=temperature_2m_max&forecast_days=14&timezone=auto`),
-            axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`),
+        const [clima, geo] = await Promise.allSettled([
+            axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m&timezone=auto`),
             axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, { headers: {'User-Agent': 'Monitor'} })
         ]);
-        const total = { clima: clima.value.data, ar: ar.value.data, geo: geo.value.data };
-        cacheClima.set(key, { data: total, last: agora });
+        const total = { clima: clima.value.data, geo: geo.value.data };
+        cacheClima.set(key, { data: total, last: Date.now() });
         res.json(total);
     } catch (e) { res.status(500).send("Erro"); }
 });
