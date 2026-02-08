@@ -37,4 +37,12 @@ app.get('/api/clima-clique', async (req, res) => {
         const [clima, ar, geo] = await Promise.allSettled([
             axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,pressure_msl,visibility,wind_speed_10m&daily=temperature_2m_max&forecast_days=14&timezone=auto`),
             axios.get(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi`),
-            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, { headers: {'User-Agent': 'Monitor'} j
+            axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, { headers: {'User-Agent': 'Monitor'} })
+        ]);
+        const total = { clima: clima.value.data, ar: ar.value.data, geo: geo.value.data };
+        cacheClima.set(key, { data: total, last: agora });
+        res.json(total);
+    } catch (e) { res.status(500).send("Erro"); }
+});
+
+app.listen(3000);
