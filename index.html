@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Storm Monitor</title>
+    <title>Storm Monitor Pro</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
@@ -19,11 +19,11 @@
     <div id="menu-lateral-65">
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
-            <button class="btn-menu-item">MultiCamadas</button>
+            <button class="btn-menu-item">CAMADAS</button>
             <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
-                <button class="btn-menu-item" onclick="setCamada('Default')">Default</button>
-                <button class="btn-menu-item" onclick="setCamada('Satelite')">SÁTELITE</button>
-                <button class="btn-menu-item" onclick="setCamada('StormChaser')">Storm Chaser Layer</button>
+                <button class="btn-menu-item" onclick="setCamada('Default')">Default (Infravermelho)</button>
+                <button class="btn-menu-item" onclick="setCamada('Satelite')">SÁTELITE (Visível)</button>
+                <button class="btn-menu-item" onclick="setCamada('StormChaser')">STORM CHASER (Térmico/Radar)</button>
             </div>
         </div>
     </div>
@@ -37,37 +37,37 @@
         const API_KEY = "7609a59c493758162d9b0a6af2914e1f"; 
         const map = L.map('map', { zoomControl: false, minZoom: 3 }).setView([-15.79, -47.88], 4);
 
-        // Camadas persistentes
-        const tileOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-        const tileSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
-        
-        // Nuvens específicas
-        const nuvensIR = L.tileLayer(`https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.8 });
-        const nuvensVisiveis = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.7 });
-        const nuvensRadar = L.tileLayer(`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.9 });
+        // Tiles de Base
+        const tileOS = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+        const tileSAT = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+
+        // Camadas de Radar/Nuvens
+        const nuvensIR = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.7 });
+        const radarTermico = L.tileLayer(`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.85 });
 
         let camadaAlertas = L.layerGroup().addTo(map);
         let camadaRota = L.layerGroup().addTo(map);
         let modoStorm = false;
 
         // Início Default
-        tileOSM.addTo(map); nuvensIR.addTo(map);
+        tileOS.addTo(map); nuvensIR.addTo(map);
 
         function setCamada(tipo) {
-            // Limpeza segura para não bugar o mapa
             map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); });
             const container = map.getContainer();
             container.style.filter = "none";
 
             if (tipo === 'Satelite') {
-                tileSatelite.addTo(map); nuvensVisiveis.addTo(map);
+                tileSAT.addTo(map);
                 modoStorm = false;
             } else if (tipo === 'StormChaser') {
-                tileOSM.addTo(map); nuvensRadar.addTo(map);
-                container.style.filter = "grayscale(100%) brightness(0.3) contrast(1.4)";
+                tileOS.addTo(map);
+                radarTermico.addTo(map); // O radar da sua imagem
+                container.style.filter = "grayscale(100%) brightness(0.3) contrast(1.6)";
                 modoStorm = true;
             } else {
-                tileOSM.addTo(map); nuvensIR.addTo(map);
+                tileOS.addTo(map);
+                nuvensIR.addTo(map);
                 modoStorm = false;
             }
             toggleMenu();
@@ -82,33 +82,23 @@
 
             if (modoStorm) {
                 desenharRota(lat, lng);
-                abrirPainelStorm(c, lat);
+                document.getElementById('painel-rota').classList.add('active');
+                document.getElementById('info-rota').innerHTML = `<b>PRESSÃO: ${c.pressure_msl}hPa | VENTO: ${c.wind_speed_10m}km/h</b>`;
+                setTimeout(() => document.getElementById('painel-rota').classList.remove('active'), 4000);
                 return;
             }
 
             abrirPainelFull(`
-                <h1>${data.geo.address.city || "Local"}</h1>
+                <h1>${data.geo.address.city || "Coordenadas"}</h1>
                 <div class="temp-principal">${Math.round(c.temperature_2m)}°C</div>
                 <div class="info-grid">
-                    <div class="info-card">Vento: <b>${c.wind_speed_10m}km/h</b></div>
-                    <div class="info-card">Humid: <b>${c.relative_humidity_2m}%</b></div>
-                    <div class="info-card">Pressão: <b>${c.pressure_msl}hPa</b></div>
-                    <div class="info-card">Visib: <b>${(c.visibility/1000).toFixed(1)}km</b></div>
-                    <div class="info-card">Tendência 14d: <b>Máx ${Math.max(...d.temperature_2m_max)}°C</b></div>
+                    <div class="info-card">💧 Humid.<br><b>${c.relative_humidity_2m}%</b></div>
+                    <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
+                    <div class="info-card">🚩 Vento<br><b>${c.wind_speed_10m}km/h</b></div>
+                    <div class="info-card">📅 Máx 14d<br><b>${Math.max(...d.temperature_2m_max)}°C</b></div>
                 </div>
             `, "#001a33");
         });
-
-        function abrirPainelStorm(c, lat) {
-            let tipo = "Cumulus";
-            if(c.wind_speed_10m > 45) tipo = "Supercelula";
-            else if(c.pressure_msl < 1004) tipo = "Shelf Cloud";
-            else if(Math.abs(lat) > 30 && c.relative_humidity_2m > 80) tipo = "Mammatus";
-
-            document.getElementById('painel-rota').classList.add('active');
-            document.getElementById('info-rota').innerHTML = `<b>NUVEM: ${tipo} | VENTO: ${c.wind_speed_10m} km/h</b>`;
-            setTimeout(() => document.getElementById('painel-rota').classList.remove('active'), 5000);
-        }
 
         function desenharRota(lat, lng) {
             camadaRota.clearLayers();
@@ -139,8 +129,20 @@
 
         function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
-        function abrirPainelFull(h, bg) { document.getElementById('painel-full').style.background = bg; document.getElementById('conteudo-full').innerHTML = h; document.getElementById('painel-full').classList.add('active'); }
-        
+        function abrirPainelFull(h, bg) { 
+            const pf = document.getElementById('painel-full');
+            pf.style.background = bg; 
+            document.getElementById('conteudo-full').innerHTML = h; 
+            pf.classList.add('active'); 
+        }
+
+        document.getElementById('btnBuscar').onclick = async function() {
+            const c = document.getElementById('cityInput').value;
+            const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(c)}`);
+            const d = await r.json();
+            if(d.length > 0) map.setView([d[0].lat, d[0].lon], 10);
+        };
+
         carregarAlertas();
     </script>
 </body>
