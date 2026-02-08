@@ -3,22 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Storm Monitor</title>
+    <title>Global Storm Monitor</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="top-bar">
-        <div id="search-container"><input type="text" id="cityInput" placeholder="Cidade..."><button id="btnBuscar">🔍</button></div>
+        <div id="search-container">
+            <input type="text" id="cityInput" placeholder="Pesquisar cidade...">
+            <button id="btnBuscar">🔍</button>
+        </div>
         <button id="btn-menu-lateral" onclick="toggleMenu()">☰</button>
     </div>
 
     <div id="menu-lateral-65">
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
-            <button class="btn-menu-item" onclick="setCamada('Default')">Default (Infravermelho)</button>
-            <button class="btn-menu-item" onclick="setCamada('Satelite')">Satélite (Nuvens Realistas)</button>
-            <button class="btn-menu-item" onclick="setCamada('StormChaser')">Storm Chaser (Térmico)</button>
+            <button class="btn-menu-item">MultiCamadas</button>
+            <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+                <button class="btn-menu-item" onclick="setCamada('Default')">Default (Infravermelho)</button>
+                <button class="btn-menu-item" onclick="setCamada('Satelite')">SÁTELITE (Visível)</button>
+                <button class="btn-menu-item" onclick="setCamada('StormChaser')">Storm Chaser Layer</button>
+            </div>
         </div>
     </div>
 
@@ -29,22 +35,19 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const API_KEY = "7609a59c493758162d9b0a6af2914e1f"; 
-        const map = L.map('map', { zoomControl: false, minZoom: 2 }).setView([-15, -48], 4);
+        const map = L.map('map', { zoomControl: false, minZoom: 3 }).setView([-15.79, -47.88], 4);
 
         const tileOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
         const tileSAT = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
         
-        // Nuvens do Satélite (Realistas)
-        const nuvensRealistas = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.7 });
-        
-        // Radar Infravermelho (Colore o mapa inteiro - para o Default)
-        const radarInfra = L.tileLayer(`https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.6 });
-        
-        // Radar Térmico Convectivo (Igual à imagem - para o Storm Chaser)
-        const radarTermico = L.tileLayer(`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.9, zIndex: 1000 });
+        const radarInfra = L.tileLayer(`https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.7 });
+        const nuvensSatelite = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.7 });
+        const radarTermico = L.tileLayer(`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY}`, { opacity: 0.9 });
 
+        let camadaAlertas = L.layerGroup().addTo(map);
         let modoStorm = false;
-        tileOSM.addTo(map); radarInfra.addTo(map); // Começa Default
+
+        tileOSM.addTo(map); radarInfra.addTo(map);
 
         function setCamada(tipo) {
             map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); });
@@ -52,17 +55,14 @@
             container.style.filter = "none";
 
             if (tipo === 'StormChaser') {
-                tileOSM.addTo(map);
-                radarTermico.addTo(map);
+                tileOSM.addTo(map); radarTermico.addTo(map);
                 container.style.filter = "grayscale(100%) brightness(0.2) contrast(1.8)";
                 modoStorm = true;
             } else if (tipo === 'Satelite') {
-                tileSAT.addTo(map);
-                nuvensRealistas.addTo(map);
+                tileSAT.addTo(map); nuvensSatelite.addTo(map);
                 modoStorm = false;
             } else {
-                tileOSM.addTo(map);
-                radarInfra.addTo(map);
+                tileOSM.addTo(map); radarInfra.addTo(map);
                 modoStorm = false;
             }
             toggleMenu();
@@ -72,18 +72,56 @@
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const data = await res.json();
             const c = data.clima.current;
+            const d = data.clima.daily;
+
             if (modoStorm) {
                 document.getElementById('painel-rota').classList.add('active');
                 document.getElementById('info-rota').innerHTML = `<b>VENTO: ${c.wind_speed_10m}km/h | ${c.pressure_msl}hPa</b>`;
                 setTimeout(() => document.getElementById('painel-rota').classList.remove('active'), 3000);
             } else {
-                abrirPainelFull(`<h1>${data.geo.address.city || "Local"}</h1><div class="temp-principal">${Math.round(c.temperature_2m)}°C</div>`, "#001a33");
+                abrirPainelFull(`
+                    <h1>${data.geo.address.city || "Local"}</h1>
+                    <div class="temp-principal">${Math.round(c.temperature_2m)}°C</div>
+                    <div class="info-grid">
+                        <div class="info-card">Vento: <b>${c.wind_speed_10m}km/h</b></div>
+                        <div class="info-card">Humid: <b>${c.relative_humidity_2m}%</b></div>
+                        <div class="info-card">Pressão: <b>${c.pressure_msl}hPa</b></div>
+                        <div class="info-card">Visib: <b>${(c.visibility/1000).toFixed(1)}km</b></div>
+                        <div class="info-card">Máx 14d: <b>${Math.max(...d.temperature_2m_max)}°C</b></div>
+                    </div>
+                `, "#001a33");
             }
         });
+
+        async function carregarAlertas() {
+            const res = await fetch('/api/alertas');
+            const d = await res.json();
+            camadaAlertas.clearLayers();
+            
+            // Alerta INMET na Capital (Brasília)
+            L.marker([-15.79, -47.88], { icon: L.divIcon({ html: '🔅', className: 'emoji' }) })
+                .addTo(camadaAlertas).on('click', () => abrirLista(d.inmet, "INMET"));
+            
+            // Alerta NOAA na Capital (Washington)
+            L.marker([38.89, -77.03], { icon: L.divIcon({ html: '☁️', className: 'emoji' }) })
+                .addTo(camadaAlertas).on('click', () => abrirLista(d.noaa, "NOAA", true));
+        }
+
+        function abrirLista(lista, fonte, isNoaa = false) {
+            let h = `<h1>Alertas ${fonte}</h1>`;
+            lista.forEach(a => {
+                const t = isNoaa ? a.properties.event : a.title[0];
+                const d = isNoaa ? (a.properties.description || a.properties.headline) : a.description[0];
+                h += `<div class="card-alerta-antigo"><b>⚠️ ${t}</b><p>${d}</p></div>`;
+            });
+            abrirPainelFull(h, "#001a33");
+        }
 
         function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
         function abrirPainelFull(h, bg) { document.getElementById('painel-full').style.background = bg; document.getElementById('conteudo-full').innerHTML = h; document.getElementById('painel-full').classList.add('active'); }
+        
+        carregarAlertas();
     </script>
 </body>
 </html>
