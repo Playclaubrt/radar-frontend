@@ -32,4 +32,4 @@ app.get('/api/clima-clique', async (req, res) => {
     } catch (e) { res.status(500).send("Erro"); }
 });
 
-app.listen(PORT, () => console.log(`Rodando em http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Monitor na porta ${PORT}`));
