@@ -1,35 +1,31 @@
 body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; background: #000; overflow: hidden; }
-#map { height: 100vh; width: 100vw; z-index: 1; background: #111; }
+#map { height: 100vh; width: 100vw; z-index: 1; }
 
-/* MAPA TOTALMENTE CINZA E ESCURO */
-.mapa-cinza-total { 
-    filter: grayscale(100%) brightness(0.2) contrast(1.5) !important; 
-}
-
+/* BARRA DE PESQUISA ANTIGA */
 #top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; z-index: 2000; }
-#search-container { background: #fff; padding: 10px; border-radius: 8px; display: flex; }
-#btn-menu-lateral { background: #001a33; color: #00ff99; border: 2px solid #00ff99; padding: 10px; border-radius: 8px; font-size: 20px; cursor: pointer; }
+#search-container { background: white; display: flex; padding: 10px; border-radius: 12px; width: 220px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); pointer-events: auto; }
+#search-container input { border: none; outline: none; flex: 1; font-size: 14px; }
+#btn-menu-lateral { background: #001a33; color: #00ff99; border: 2px solid #00ff99; width: 45px; height: 45px; border-radius: 8px; font-size: 24px; cursor: pointer; }
 
-#menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background: #001a33; border-left: 4px solid #00ff99; z-index: 4000; transition: 0.4s; }
+/* MENU LATERAL ANTIGO */
+#menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background: #001a33; border-left: 5px solid #00ff99; z-index: 4000; transition: 0.4s; }
 #menu-lateral-65.menu-active { right: 0; }
+.conteudo-menu { padding: 120px 20px; }
+.btn-fechar-menu { position: absolute; top: 20px; right: 20px; background: none; border: none; color: #00ff99; font-size: 40px; }
+.btn-menu-item { background: #00ff99; border: none; padding: 15px; width: 100%; font-weight: bold; border-radius: 8px; color: #001a33; margin-bottom: 10px; }
 
-#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 9999; transition: 0.5s; color: white; display: flex; flex-direction: column; }
+/* PAINEL FULL ALERTA (AZUL MARINHO + DESCRIÇÃO LONGA) */
+#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 9999; transition: 0.5s; color: white; display: flex; flex-direction: column; text-align: center; }
 #painel-full.active { top: 0; }
-.scroll-area { padding: 60px 20px; overflow-y: auto; flex: 1; background: #001a33; }
+.scroll-area { padding: 80px 20px; overflow-y: auto; flex: 1; background: #001a33; }
+.alerta-bloco { background: rgba(255,255,255,0.05); border-left: 5px solid #00ff99; margin: 20px 0; padding: 20px; text-align: left; }
+.alerta-bloco b { color: #00ff99; font-size: 1.2rem; display: block; margin-bottom: 10px; }
+.alerta-bloco p { font-size: 1rem; line-height: 1.6; white-space: pre-wrap; }
 
-/* ALERTA VIBRANTE IGUAL AO ANTIGO */
-.alerta-bloco { 
-    background: rgba(255,255,255,0.05); 
-    border-left: 5px solid #00ff99; 
-    margin-bottom: 20px; 
-    padding: 15px; 
-    text-align: left; 
-}
-.alerta-bloco b { color: #00ff99; font-size: 1.2rem; display: block; margin-bottom: 5px; }
-.alerta-bloco p { font-size: 1rem; line-height: 1.5; white-space: pre-wrap; }
-
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; }
-.info-card { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; border: 1px solid #00ff9944; }
+#painel-rota { position: fixed; bottom: -25%; left: 0; width: 100%; height: 20%; background: rgba(0,0,0,0.9); border-top: 3px solid #00ff99; z-index: 5000; transition: 0.4s; display: flex; align-items: center; justify-content: center; color: white; }
+#painel-rota.active { bottom: 0; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
+.info-card { background: rgba(255,255,255,0.08); padding: 15px; border-radius: 10px; border: 1px solid #00ff9933; }
 .temp-principal { font-size: 5rem; font-weight: bold; }
-.emoji { font-size: 50px; cursor: pointer; }
+.emoji { font-size: 55px; cursor: pointer; }
 .r-icon { background: none; border: none; }
