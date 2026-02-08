@@ -1,30 +1,21 @@
-body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; }
+body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
 #map { height: 100vh; width: 100vw; background: #000; }
 
-/* BARRA DE BUSCA IGUAL AO PEDIDO */
 #top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; z-index: 2000; }
-#search-container { background: #fff; display: flex; padding: 10px; border-radius: 8px; width: 220px; }
+#search-container { background: #fff; display: flex; padding: 10px; border-radius: 8px; width: 220px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 #search-container input { border: none; outline: none; flex: 1; }
-#btn-menu-lateral { background: #000; color: #ff3300; border: 2px solid #ff3300; width: 45px; height: 45px; border-radius: 5px; font-size: 24px; cursor: pointer; }
+#btn-menu-lateral { background: #001a33; color: #00ff99; border: 2px solid #00ff99; width: 45px; height: 45px; border-radius: 8px; font-size: 24px; cursor: pointer; }
 
-/* MENU LATERAL 65% */
-#menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background: #050505; border-left: 3px solid #ff3300; z-index: 4000; transition: 0.4s; }
+/* PAINEL LATERAL 65% - EXATAMENTE COMO PEDIDO */
+#menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background: #001a33; border-left: 5px solid #00ff99; z-index: 4000; transition: 0.4s; }
 #menu-lateral-65.menu-active { right: 0; }
-.conteudo-menu { padding: 80px 20px; display: flex; flex-direction: column; gap: 10px; }
-.btn-menu-item { background: #111; border: 1px solid #333; padding: 15px; color: #ccc; font-weight: bold; text-align: left; }
+.conteudo-menu { padding: 80px 20px; display: flex; flex-direction: column; gap: 15px; }
+.btn-menu-item { background: #00ff99; border: none; padding: 15px; color: #001a33; font-weight: bold; border-radius: 5px; text-transform: uppercase; text-align: left; }
 
-/* PAINEL INFERIOR DE DADOS */
-#painel-rota { position: fixed; bottom: -100px; left: 0; width: 100%; height: 80px; background: rgba(0,0,0,0.9); border-top: 2px solid #ff3300; color: #ff3300; display: flex; align-items: center; justify-content: center; z-index: 5000; transition: 0.3s; }
-#painel-rota.active { bottom: 0; }
-
-/* ALERTAS FULL */
-#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 9999; transition: 0.5s; color: white; }
+#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 9999; transition: 0.5s; color: white; text-align: center; }
 #painel-full.active { top: 0; }
-.scroll-area { padding: 60px 20px; background: #001a33; height: 100%; overflow-y: auto; }
-.btn-fechar-full { position: absolute; top: 20px; right: 20px; background: #ff3300; border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; }
+.scroll-area { padding: 60px 20px; overflow-y: auto; height: 100%; }
 
-/* REALCE DAS NUVENS (Igual à imagem) */
-.leaflet-layer img {
-    /* Garante que o radar não seja afetado pelo filtro de inversão do mapa */
-    pointer-events: none;
-}
+#painel-rota { position: fixed; bottom: -100px; left: 0; width: 100%; height: 80px; background: rgba(0,0,0,0.9); border-top: 2px solid #00ff99; color: #00ff99; display: flex; align-items: center; justify-content: center; z-index: 5000; transition: 0.3s; }
+#painel-rota.active { bottom: 0; }
+.temp-principal { font-size: 5rem; font-weight: bold; color: #00ff99; }
