@@ -1,18 +1,25 @@
-body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #000; font-family: sans-serif; }
-#map { height: 100vh; width: 100vw; border: 4px solid #00ff99; box-sizing: border-box; }
+body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #000; font-family: sans-serif; overflow: hidden; }
+#map { height: 100vh; width: 100vw; border: 5px solid #00ff99; box-sizing: border-box; background: #000; }
 
-/* MENU LATERAL 65% EXATO */
+#top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; z-index: 2000; }
+#search-container { background: #fff; display: flex; padding: 10px; border-radius: 8px; width: 220px; }
+#search-container input { border: none; outline: none; flex: 1; }
+#btn-menu-lateral { background: #001a33; color: #00ff99; border: 2px solid #00ff99; width: 45px; height: 45px; border-radius: 8px; font-size: 24px; cursor: pointer; }
+
 #menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background: #001a33; border-left: 5px solid #00ff99; z-index: 4000; transition: 0.4s; }
 #menu-lateral-65.menu-active { right: 0; }
-.btn-menu-item { background: #00ff99; border: none; padding: 15px; width: 100%; font-weight: bold; color: #001a33; margin-bottom: 10px; text-transform: uppercase; text-align: left; }
+.conteudo-menu { padding: 100px 20px; }
+.btn-menu-item { background: #00ff99; border: none; padding: 15px; width: 100%; font-weight: bold; color: #001a33; margin-bottom: 10px; text-transform: uppercase; text-align: left; border-radius: 8px; }
 
-/* PAINEL NUVEM REALTIME */
-.painel-nuvem-real { text-align: left; padding: 20px; border: 2px solid #00ff99; border-radius: 15px; background: rgba(0,255,153,0.05); }
-.grid-nuvem p { margin: 12px 0; font-size: 1.1rem; border-bottom: 1px solid rgba(0,255,153,0.2); padding-bottom: 5px; }
-.grid-nuvem b { color: #00ff99; text-transform: uppercase; margin-right: 10px; }
-.status-live { margin-top: 20px; color: red; font-weight: bold; animation: blink 1s infinite; }
-@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
+.info-card { background: rgba(0, 255, 153, 0.1); padding: 15px; border-radius: 10px; border: 1px solid #00ff99; color: white; }
+.temp-principal { font-size: 5rem; font-weight: bold; color: #00ff99; text-align: center; }
 
 #painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 9999; transition: 0.5s; color: white; }
 #painel-full.active { top: 0; }
-.scroll-area { padding: 60px 20px; overflow-y: auto; height: 100%; }
+.scroll-area { padding: 80px 20px; overflow-y: auto; height: 100%; }
+.btn-fechar-full { position: absolute; top: 20px; right: 20px; background: #00ff99; border: none; color: #001a33; width: 45px; height: 45px; border-radius: 50%; }
+
+.painel-nuvem-real { border-top: 2px solid #00ff99; margin-top: 20px; padding-top: 20px; text-align: left; }
+.painel-nuvem-real b { color: #00ff99; margin-right: 5px; }
+.emoji { font-size: 50px; cursor: pointer; }
