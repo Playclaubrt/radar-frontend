@@ -8,7 +8,7 @@ app.use(express.static(path.join(__dirname)));
 app.use(express.json());
 
 // Banco de dados em memória
-let users = [{ user: "devcreator111.000.12", pass: "admin", plan: "Ultra Pro" }];
+let users = [{ user: "devcreator111.000.12", pass: "CRIADORBRDEEMPRESA", plan: "Ultra Pro" }];
 
 app.post('/api/login', (req, res) => {
     const found = users.find(u => u.user === req.body.user && u.pass === req.body.pass);
