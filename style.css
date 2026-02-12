@@ -1,30 +1,35 @@
-body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
-#map { height: 100vh; width: 100vw; z-index: 1; background: #000; transition: 0.3s; }
+body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Segoe UI', sans-serif; background: #000; overflow: hidden; }
+#map { height: 100vh; width: 100vw; z-index: 1; background: #000; transition: 0.5s; }
 
-#search-container { position: absolute; top: 15px; left: 15px; width: 250px; z-index: 1000; background: white; display: flex; padding: 10px; border-radius: 12px; }
-#search-container input { flex: 1; border: none; outline: none; }
-
-#btn-menu-lateral { position: absolute; top: 20px; right: 20px; z-index: 2000; background: #001a33; color: #00ff99; border: 2px solid #00ff99; width: 45px; height: 45px; border-radius: 8px; font-size: 24px; }
-
-#menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background-color: #001a33; border-left: 5px solid #00ff99; z-index: 4000; transition: 0.4s; }
+/* MENU LATERAL 65% */
+#menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background: #001a33; border-left: 4px solid #00ff99; z-index: 4000; transition: 0.4s; padding-top: 60px; }
 #menu-lateral-65.menu-active { right: 0; }
-.conteudo-menu { padding: 80px 20px; height: 90%; overflow-y: auto; }
 
-/* LISTA DE CAMADAS EMBAIXO DO BOTAO */
-.camada-btn-fixo { width: 100%; padding: 15px; margin-top: 10px; border: none; border-radius: 8px; font-weight: bold; background: #00ff99; color: #001a33; }
-.camada-btn-fixo.storm { background: #ff4c4c; color: white; }
-.camada-btn-lista { width: 100%; padding: 10px; margin-top: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #00ff99; border-radius: 5px; text-align: left; font-size: 11px; }
+/* PERFIL */
+#perfil-container { display: flex; align-items: center; padding: 20px; color: white; }
+#userImg { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #00ff99; margin-right: 15px; }
+#userPlanBadge { background: #00ff99; color: #001a33; font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
 
-#interface-camadas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 5000; visibility: hidden; opacity: 0; display: flex; align-items: center; justify-content: center; }
-#interface-camadas.camadas-active { visibility: visible; opacity: 1; }
-.quadrado-camadas { width: 280px; height: 280px; background: white; border-radius: 15px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+/* CAMADAS */
+.btn-layer-opt { width: 90%; margin: 5px 5%; padding: 12px; background: #00ff99; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+#lista-150-container { height: 300px; overflow-y: scroll; padding: 10px; margin-top: 10px; background: rgba(0,0,0,0.3); }
+.btn-150 { width: 100%; text-align: left; background: none; border: 1px solid #00ff9933; color: #00ff99; padding: 8px; font-size: 11px; margin-bottom: 2px; }
 
-#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 3000; transition: 0.4s; color: white; padding: 60px 20px; display: flex; flex-direction: column; align-items: center; }
+/* PAINEL FULL CLIMA */
+#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 5000; transition: 0.4s; color: white; padding: 40px 20px; box-sizing: border-box; overflow-y: auto; text-align: center; }
 #painel-full.active { top: 0; }
-.temp-principal { font-size: 5rem; font-weight: bold; }
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-.info-card { background: rgba(255,255,255,0.2); padding: 15px; border-radius: 15px; text-align: center; }
+.semana-grid { display: flex; overflow-x: auto; gap: 15px; padding: 20px 0; }
+.day-unit { min-width: 70px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+.info-card { background: rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; font-size: 13px; }
 
+/* DEV PANEL */
+.dev-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; height: 80%; background: #000; border: 2px solid #00ff99; z-index: 9999; display: none; padding: 20px; }
+.dev-modal.active { display: block; }
+#dev-logs { width: 100%; height: 60%; background: #111; color: lime; font-family: monospace; }
+
+/* LOGIN */
 #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index: 10000; display:flex; align-items:center; justify-content:center; }
-.login-box { background:#001a33; padding:40px; border:3px solid #00ff99; border-radius:20px; text-align:center; color:#fff; }
-.login-box input { display: block; margin: 10px auto; padding: 10px; border-radius: 5px; border: none; }
+.login-box { background:#001a33; padding:40px; border:3px solid #00ff99; border-radius:20px; text-align:center; color:#fff; width: 80%; }
+.login-box input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; }
+.login-box button { width: 100%; padding: 12px; background: #00ff99; border: none; font-weight: bold; }
