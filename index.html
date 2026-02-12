@@ -10,11 +10,11 @@
 <body>
     <div id="login-screen">
         <div class="login-box">
-            <h2 id="auth-title">LOGIN</h2>
+            <h2>STORM ACCESS</h2>
             <input type="text" id="userInput" placeholder="Usuário">
             <input type="password" id="passInput" placeholder="Senha">
-            <button onclick="fazerAuth()" id="authBtn">ENTRAR</button>
-            <p onclick="trocarModoAuth()" id="toggleAuth">Criar conta</p>
+            <button onclick="auth('login')">ENTRAR</button>
+            <button onclick="auth('cadastro')" style="background:none; border:1px solid #00ff99; margin-top:5px">CRIAR CONTA</button>
         </div>
     </div>
 
@@ -23,24 +23,51 @@
     <div id="menu-lateral-65">
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
-            <div class="plano-tag">STATUS: <b id="userPlan">FREE</b></div>
+            <div id="perfil-container">
+                <img id="userImg" src="" alt="Perfil">
+                <div id="userInfo">
+                    <b id="userName">Usuário</b>
+                    <span id="userPlanBadge">THE CREATOR</span>
+                </div>
+            </div>
+            <hr border="1" color="#00ff99">
+            
             <button class="btn-menu-item" onclick="toggleInterfaceCamadas()">MultiCamadas</button>
             
-            <div id="lista-camadas-infra">
-                <button class="camada-btn-fixo" onclick="setBase('default')">DEFAULT (OSM)</button>
-                <button class="camada-btn-fixo" onclick="setBase('satelite')">SATÉLITE HD</button>
-                <button class="camada-btn-fixo storm" onclick="setBase('storm')">STORM CHASER (BAND 13)</button>
-                <div id="container-150">
-                    </div>
+            <div id="camadas-principais">
+                <button class="btn-layer-opt" onclick="setLayer('default')">Default</button>
+                <button class="btn-layer-opt" onclick="setLayer('storm')">Storm Chaser Layer</button>
+                <button class="btn-layer-opt" onclick="setLayer('sat')">Sátelite</button>
             </div>
+
+            <div id="lista-150-container">
+                <p>--- INFRAESTRUTURA TÉCNICA (150+) ---</p>
+                <div id="grid-150"></div>
+            </div>
+
+            <div class="menu-footer">
+                <button class="btn-footer" onclick="alert('Upgrades/Pagamentos')">Pagamentos & Upgrades</button>
+                <button class="btn-footer" onclick="alert('Configurações')">Configurações</button>
+                <button id="programmer-opt" class="btn-footer" style="display:none" onclick="toggleDevPanel()">Programmer Option</button>
+                <button class="btn-footer" onclick="location.reload()" style="color:#ff4c4c">Log Out</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dev-panel" class="dev-modal">
+        <div class="dev-content">
+            <h3>Dev Terminal</h3>
+            <button onclick="window.open('https://github.com')">GitHub Repo</button>
+            <button onclick="window.open('https://render.com')">Render Console</button>
+            <textarea id="dev-logs" readonly>Aguardando comandos...</textarea>
+            <button onclick="toggleDevPanel()">Fechar</button>
         </div>
     </div>
 
     <div id="interface-camadas">
         <div class="quadrado-camadas">
             <button class="btn-camada-fechar" onclick="toggleInterfaceCamadas()">✕</button>
-            <button class="btn-camada-add" onclick="alert('Combinando Camadas...')">＋</button>
-            <p style="color: black; font-weight: bold;">COMBINAR CAMADAS</p>
+            <button class="btn-camada-add" onclick="alert('Camadas Combinadas!')">＋</button>
         </div>
     </div>
 
@@ -54,81 +81,101 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_KEY = "7609a59c493758162d9b0a6af2914e1f"; 
-        const bounds = L.latLngBounds(L.latLng(-89.9, -180), L.latLng(89.9, 180));
-        const map = L.map('map', { zoomControl: false, minZoom: 2, maxBounds: bounds, maxBoundsViscosity: 1.0 }).setView([-15.79, -47.88], 4);
-        
+        const map = L.map('map', { zoomControl: false, minZoom: 2, maxBounds: [[-89, -180], [89, 180]], maxBoundsViscosity: 1.0 }).setView([-15.79, -47.88], 4);
         const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { noWrap: true }).addTo(map);
         const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
-        
-        function setBase(t) {
+
+        let currentLayer = null;
+
+        function setLayer(type) {
             map.removeLayer(sat);
+            if(currentLayer) map.removeLayer(currentLayer);
             document.getElementById('map').style.filter = "none";
-            if(t==='satelite') sat.addTo(map);
-            if(t==='storm') document.getElementById('map').style.filter = "invert(100%) grayscale(100%) brightness(0.5) contrast(1.5)";
+
+            if(type === 'sat') sat.addTo(map);
+            if(type === 'storm') document.getElementById('map').style.filter = "invert(100%) grayscale(100%) brightness(0.6) contrast(1.4)";
+        }
+
+        const camadasList = ["Refletividade Base - Z", "Refletividade Composta - CZ", "Velocidade Doppler - V", "Espectro SW", "ZDR", "KDP", "CC", "Eco Topo (Altitude)", "Precip. 1h", "Precip. 3h", "STP", "Prob. Granizo (POH)", "MESH", "TVS (Tornado)", "Mesociclone", "VIL", "Rain Rate", "Descargas Nuvem-Solo", "CAPE", "CIN", "SRH 0-3km", "Bulk Shear", "PWAT", "Hotspots", "Dust Load", "AQI", "PM2.5", "SST El Niño", "Turbulência CAT"];
+
+        const grid = document.getElementById('grid-150');
+        for(let i=0; i<150; i++) {
+            let n = camadasList[i % camadasList.length] + (i > 28 ? ` v.${i}` : "");
+            grid.innerHTML += `<button class="btn-150" onclick="ativarCamadaReal('${n}')">${n}</button>`;
+        }
+
+        function ativarCamadaReal(nome) {
+            if(currentLayer) map.removeLayer(currentLayer);
+            // Simulação de Camada Real via OpenWeather Tiles
+            currentLayer = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=API_KEY`).addTo(map);
+            alert(`Camada Ativa: ${nome}`);
+        }
+
+        map.on('click', async (e) => {
+            const { lat, lng } = e.latlng;
+            abrirPainelFull("<h3>Processando Dados Atmosféricos...</h3>", "#000");
+            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            const c = data.clima.current;
+            const d = data.clima.daily;
+
+            let prevHTML = `<div class='semana-grid'>`;
+            d.time.forEach((t, i) => {
+                prevHTML += `<div class='day-unit'><b>${t.split('-')[2]}/${t.split('-')[1]}</b><br>${getClimaEmoji(d.weather_code[i])}<br><small>${d.uv_index_max[i]} UV</small></div>`;
+            });
+            prevHTML += `</div>`;
+
+            let html = `
+                <h1 style="margin:0">${data.geo.address.city || "Alvo"}</h1>
+                <div class="temp-principal">${c.temperature_2m.toFixed(1)}°C</div>
+                <div style="font-size:80px">${getClimaEmoji(c.weather_code)}</div>
+                ${prevHTML}
+                <div class="info-grid">
+                    <div class="info-card">🌅 Nascer: ${d.sunrise[0].split('T')[1]}</div>
+                    <div class="info-card">🌇 Pôr do Sol: ${d.sunset[0].split('T')[1]}</div>
+                    <div class="info-card">🍃 AQI: ${data.ar.current.european_aqi}</div>
+                    <div class="info-card">🌫️ PM2.5: ${data.ar.current.pm2_5}</div>
+                    <div class="info-card">⏲️ Pressão: ${c.pressure_msl}hPa</div>
+                    <div class="info-card">💧 Umidade: ${c.relative_humidity_2m}%</div>
+                </div>
+            `;
+            abrirPainelFull(html, "linear-gradient(180deg, #1a2a6c, #b21f1f, #fdbb2d)");
+        });
+
+        async function auth(mode) {
+            const user = document.getElementById('userInput').value;
+            const pass = document.getElementById('passInput').value;
+            const res = await fetch(`/api/${mode}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user, pass}) });
+            const data = await res.json();
+            if(res.ok) {
+                if(mode === 'login') {
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('userName').innerText = data.user.user;
+                    document.getElementById('userPlanBadge').innerText = data.user.plan;
+                    document.getElementById('userImg').src = data.user.img;
+                    if(data.user.plan === "THE CREATOR") document.getElementById('programmer-opt').style.display = 'block';
+                } else alert("Cadastrado com sucesso!");
+            }
+        }
+
+        async function carregarAlertas() {
+            const res = await fetch('/api/alertas');
+            const data = await res.json();
+            if(data.inmet.length > 0) L.marker([-15.79, -47.88], {icon: L.divIcon({html:'<div class="emoji-icon">🔅</div>', className:''})}).addTo(map).on('click', () => exibirAlertaLista(data.inmet, "INMET"));
+            if(data.noaa.length > 0) L.marker([38.89, -77.03], {icon: L.divIcon({html:'<div class="emoji-icon">☁️</div>', className:''})}).addTo(map).on('click', () => exibirAlertaListaNoaa(data.noaa));
         }
 
         function getClimaEmoji(code) {
-            const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️", 96: "🌩️", 99: "🌪️" };
+            const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️" };
             return tab[code] || "🌡️";
         }
-
-        // GERAR 150 CAMADAS
-        const camNames = ["Refletividade Z", "Velocidade V", "MESH", "TVS", "CAPE", "SRH 0-3km", "VIL", "MESH", "Rain Rate", "Cloud Top", "Hotspots", "Dust", "PM2.5", "O3", "SO2"];
-        const cont = document.getElementById('container-150');
-        for(let i=0; i<150; i++) {
-            let name = camNames[i % camNames.length] + " (Layer " + (i+1) + ")";
-            cont.innerHTML += `<button class="camada-btn-lista" onclick="alert('Ativando ${name}')">${name}</button>`;
-        }
-
-        // LÓGICA DE CLIQUE E ALERTAS (COPIADA DO SEU LAYOUT)
-        map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
-            abrirPainelFull("<h3>Carregando...</h3>", "#000");
-            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-            const data = await res.json();
-            const current = data.clima.current;
-            const daily = data.clima.daily;
-            
-            let html = `
-                <h1>${data.geo.address.city || "Região"}</h1>
-                <div class="temp-principal">${current.temperature_2m.toFixed(1)}°C</div>
-                <div class="emoji-grande" style="font-size:80px">${getClimaEmoji(current.weather_code)}</div>
-                <div class="info-grid">
-                    <div class="info-card">💧 Humid.<br><b>${current.relative_humidity_2m}%</b></div>
-                    <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
-                    <div class="info-card">⏲️ Pressão<br><b>${current.pressure_msl}hPa</b></div>
-                    <div class="info-card">👁️ Visib.<br><b>${(current.visibility / 1000).toFixed(1)}km</b></div>
-                </div>
-                <div style="margin-top:20px; border-top:1px solid #fff; padding-top:10px;">
-                    <p><b>Altitude:</b> ${current.weather_code > 90 ? '15.000m' : '3.000m'}</p>
-                    <p><b>Evolução:</b> ${current.pressure_msl < 1010 ? 'CUMULOS -> SUPERCELULA' : 'ESTÁVEL'}</p>
-                </div>
-            `;
-            abrirPainelFull(html, current.temperature_2m > 30 ? "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)" : "linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)");
-        });
-
-        // AUTH
-        let isLogin = true;
-        function trocarModoAuth() { isLogin = !isLogin; document.getElementById('auth-title').innerText = isLogin ? "LOGIN" : "CADASTRO"; }
-        async function fazerAuth() {
-            const user = document.getElementById('userInput').value;
-            const pass = document.getElementById('passInput').value;
-            const res = await fetch(isLogin ? '/api/login' : '/api/cadastro', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user, pass}) });
-            if(res.ok) {
-                if(!isLogin) { alert("Cadastrado!"); trocarModoAuth(); }
-                else { 
-                    const d = await res.json(); 
-                    document.getElementById('login-screen').style.display='none'; 
-                    document.getElementById('userPlan').innerText = d.plan;
-                }
-            } else alert("Erro!");
-        }
-
         function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
         function toggleInterfaceCamadas() { document.getElementById('interface-camadas').classList.toggle('camadas-active'); }
         function abrirPainelFull(h, bg) { const p = document.getElementById('painel-full'); p.style.background = bg; document.getElementById('conteudo-full').innerHTML = h; p.classList.add('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        function toggleDevPanel() { document.getElementById('dev-panel').classList.toggle('active'); }
+        
+        carregarAlertas();
     </script>
 </body>
 </html>
