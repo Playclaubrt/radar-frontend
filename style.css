@@ -1,26 +1,25 @@
 body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; background: #000; }
-#map { height: 100vh; width: 100vw; z-index: 1; background: #000; }
+#map { height: 100vh; width: 100vw; z-index: 1; background: #000; transition: 0.3s; }
 
-/* SEU LAYOUT DE BUSCA */
 #search-container { position: absolute; top: 15px; left: 15px; width: 250px; z-index: 1000; background: white; display: flex; padding: 10px; border-radius: 12px; }
 #search-container input { flex: 1; border: none; outline: none; }
 
-/* SEU MENU 65% */
+#btn-menu-lateral { position: absolute; top: 20px; right: 20px; z-index: 2000; background: #001a33; color: #00ff99; border: 2px solid #00ff99; width: 45px; height: 45px; border-radius: 8px; font-size: 24px; }
+
 #menu-lateral-65 { position: fixed; top: 0; right: -70%; width: 65%; height: 100%; background-color: #001a33; border-left: 5px solid #00ff99; z-index: 4000; transition: 0.4s; }
 #menu-lateral-65.menu-active { right: 0; }
-.btn-menu-item { background: #00ff99; color: #001a33; border: none; padding: 15px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; }
+.conteudo-menu { padding: 80px 20px; height: 90%; overflow-y: auto; }
 
-/* INTERFACE CAMADAS QUADRADO */
-#interface-camadas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 5000; visibility: hidden; opacity: 0; transition: 0.3s; display: flex; align-items: center; justify-content: center; }
+/* LISTA DE CAMADAS EMBAIXO DO BOTAO */
+.camada-btn-fixo { width: 100%; padding: 15px; margin-top: 10px; border: none; border-radius: 8px; font-weight: bold; background: #00ff99; color: #001a33; }
+.camada-btn-fixo.storm { background: #ff4c4c; color: white; }
+.camada-btn-lista { width: 100%; padding: 10px; margin-top: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #00ff99; border-radius: 5px; text-align: left; font-size: 11px; }
+
+#interface-camadas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 5000; visibility: hidden; opacity: 0; display: flex; align-items: center; justify-content: center; }
 #interface-camadas.camadas-active { visibility: visible; opacity: 1; }
-.quadrado-camadas { width: 350px; height: 450px; background: white; border-radius: 20px; position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-.btn-camada-add { background: #001a33; color: white; border: none; width: 80px; height: 80px; border-radius: 50%; font-size: 50px; cursor: pointer; }
-.btn-camada-fechar { position: absolute; top: 10px; right: 10px; background: #ff4c4c; color: white; border: none; width: 35px; height: 35px; border-radius: 8px; cursor: pointer; }
+.quadrado-camadas { width: 280px; height: 280px; background: white; border-radius: 15px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-.btn-camada-opt { width: 100%; padding: 10px; margin-bottom: 5px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; text-align: left; font-size: 12px; }
-
-/* PAINEL FULL (LAYOUT FIEL) */
-#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 3000; transition: 0.4s; color: white; padding: 60px 20px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
+#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; z-index: 3000; transition: 0.4s; color: white; padding: 60px 20px; display: flex; flex-direction: column; align-items: center; }
 #painel-full.active { top: 0; }
 .temp-principal { font-size: 5rem; font-weight: bold; }
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
@@ -28,3 +27,4 @@ body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans
 
 #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index: 10000; display:flex; align-items:center; justify-content:center; }
 .login-box { background:#001a33; padding:40px; border:3px solid #00ff99; border-radius:20px; text-align:center; color:#fff; }
+.login-box input { display: block; margin: 10px auto; padding: 10px; border-radius: 5px; border: none; }
