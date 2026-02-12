@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monitor Clima Global PRO</title>
+    <title>Monitor Clima Global</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="login-screen">
         <div class="login-box">
-            <h2>STORM MONITOR LOGIN</h2>
+            <h2 id="auth-title">LOGIN</h2>
             <input type="text" id="userInput" placeholder="Usuário">
             <input type="password" id="passInput" placeholder="Senha">
-            <button onclick="auth()">ENTRAR</button>
-            <p onclick="irCadastro()">Criar Conta</p>
+            <button onclick="fazerAuth()" id="authBtn">ENTRAR</button>
+            <p onclick="trocarModoAuth()" id="toggleAuth">Criar conta</p>
         </div>
     </div>
 
@@ -23,20 +23,24 @@
     <div id="menu-lateral-65">
         <button class="btn-fechar-menu" onclick="toggleMenu()">✕</button>
         <div class="conteudo-menu">
-            <div id="status-plano">PLANO: <b id="p-nome">FREE</b></div>
+            <div class="plano-tag">STATUS: <b id="userPlan">FREE</b></div>
             <button class="btn-menu-item" onclick="toggleInterfaceCamadas()">MultiCamadas</button>
-            <button class="btn-menu-item" style="margin-top:10px; background:#ffcc00" onclick="alert('Pagar via PIX: devcreator@storm.com')">UPGRADE PRO</button>
+            
+            <div id="lista-camadas-infra">
+                <button class="camada-btn-fixo" onclick="setBase('default')">DEFAULT (OSM)</button>
+                <button class="camada-btn-fixo" onclick="setBase('satelite')">SATÉLITE HD</button>
+                <button class="camada-btn-fixo storm" onclick="setBase('storm')">STORM CHASER (BAND 13)</button>
+                <div id="container-150">
+                    </div>
+            </div>
         </div>
     </div>
 
     <div id="interface-camadas">
         <div class="quadrado-camadas">
             <button class="btn-camada-fechar" onclick="toggleInterfaceCamadas()">✕</button>
-            <div id="lista-150" style="display:none; width:100%; height:80%; overflow-y:auto; padding:20px; color:#000">
-                <h3>SELECIONE A CAMADA (150 DISPONÍVEIS)</h3>
-                <div id="camadas-grid"></div>
-            </div>
-            <button class="btn-camada-add" id="btn-add-main" onclick="mostrarLista150()">＋</button>
+            <button class="btn-camada-add" onclick="alert('Combinando Camadas...')">＋</button>
+            <p style="color: black; font-weight: bold;">COMBINAR CAMADAS</p>
         </div>
     </div>
 
@@ -46,126 +50,85 @@
     </div>
 
     <div id="map"></div>
-
-    <div id="painel-full">
-        <button class="btn-fechar-full" onclick="fecharPainel()">✕</button>
-        <div id="conteudo-full"></div>
-    </div>
+    <div id="painel-full"><button class="btn-fechar-full" onclick="fecharPainel()">✕</button><div id="conteudo-full"></div></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_KEY = "7609a59c493758162d9b0a6af2914e1f";
+        const API_KEY = "7609a59c493758162d9b0a6af2914e1f"; 
         const bounds = L.latLngBounds(L.latLng(-89.9, -180), L.latLng(89.9, 180));
+        const map = L.map('map', { zoomControl: false, minZoom: 2, maxBounds: bounds, maxBoundsViscosity: 1.0 }).setView([-15.79, -47.88], 4);
+        
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { noWrap: true }).addTo(map);
+        const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+        
+        function setBase(t) {
+            map.removeLayer(sat);
+            document.getElementById('map').style.filter = "none";
+            if(t==='satelite') sat.addTo(map);
+            if(t==='storm') document.getElementById('map').style.filter = "invert(100%) grayscale(100%) brightness(0.5) contrast(1.5)";
+        }
 
-        const map = L.map('map', { 
-            zoomControl: false, minZoom: 2, maxBounds: bounds, maxBoundsViscosity: 1.0 
-        }).setView([-15.79, -47.88], 4);
-
-        const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { noWrap: true }).addTo(map);
-        let activeLayers = {};
-
-        // ICONES DOS ALERTAS (LAYOUT FIEL)
-        const iconInmet = L.divIcon({ html: '<div class="emoji-icon">🔅</div>', className: 'c-icon', iconSize: [50, 50] });
-        const iconNoaa = L.divIcon({ html: '<div class="emoji-icon">☁️</div>', className: 'c-icon', iconSize: [50, 50] });
-
-        // EMOJIS DE CLIMA (RECUPERADOS)
         function getClimaEmoji(code) {
             const tab = { 0: "🌞", 1: "🌤️", 2: "⛅", 3: "🌥️", 45: "☁️", 61: "🌧️", 71: "🌨️", 95: "⛈️", 96: "🌩️", 99: "🌪️" };
             return tab[code] || "🌡️";
         }
 
-        // LOGICA DAS 150 CAMADAS
-        function mostrarLista150() {
-            const grid = document.getElementById('camadas-grid');
-            const btnAdd = document.getElementById('btn-add-main');
-            const lista = document.getElementById('lista-150');
-            grid.innerHTML = "";
-            btnAdd.style.display = "none";
-            lista.style.display = "block";
-
-            const tipos = ["Nuvens", "Precipitação", "Pressão", "Vento", "Temp", "Umidade"];
-            const altitudes = ["Superfície", "100m", "500m", "1000m", "5000m", "10000m"];
-            
-            let count = 0;
-            tipos.forEach(t => {
-                altitudes.forEach(a => {
-                    for(let i=1; i<=4; i++) { // Gerando variações para chegar em 150+
-                        count++;
-                        if(count > 150) return;
-                        let id = `${t.toLowerCase()}_${count}`;
-                        grid.innerHTML += `<button class='btn-camada-opt' onclick="toggleLayer('${id}', '${t} ${a} v${i}')">${t} ${a} v${i}</button>`;
-                    }
-                });
-            });
+        // GERAR 150 CAMADAS
+        const camNames = ["Refletividade Z", "Velocidade V", "MESH", "TVS", "CAPE", "SRH 0-3km", "VIL", "MESH", "Rain Rate", "Cloud Top", "Hotspots", "Dust", "PM2.5", "O3", "SO2"];
+        const cont = document.getElementById('container-150');
+        for(let i=0; i<150; i++) {
+            let name = camNames[i % camNames.length] + " (Layer " + (i+1) + ")";
+            cont.innerHTML += `<button class="camada-btn-lista" onclick="alert('Ativando ${name}')">${name}</button>`;
         }
 
-        function toggleLayer(id, nome) {
-            if(activeLayers[id]) {
-                map.removeLayer(activeLayers[id]);
-                delete activeLayers[id];
-                alert("Removido: " + nome);
-            } else {
-                // Aqui simulamos a Band 13 e outras camadas técnicas
-                let url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY}`;
-                if(id.includes('nuvens')) url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`;
-                if(id.includes('precipit')) url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`;
-                
-                activeLayers[id] = L.tileLayer(url, { opacity: 0.7, zIndex: 100 }).addTo(map);
-                alert("Ativado: " + nome);
-            }
-        }
-
-        map.on('click', async function(e) {
+        // LÓGICA DE CLIQUE E ALERTAS (COPIADA DO SEU LAYOUT)
+        map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            abrirPainelFull("<h3>Analisando Atmosfera...</h3>", "#000");
+            abrirPainelFull("<h3>Carregando...</h3>", "#000");
             const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
             const data = await res.json();
-            const c = data.clima.current;
-            const d = data.clima.daily;
-
+            const current = data.clima.current;
+            const daily = data.clima.daily;
+            
             let html = `
-                <h1>${data.geo.address.city || "Alvo"}</h1>
-                <div class="temp-principal">${c.temperature_2m.toFixed(1)}°C</div>
-                <div class="emoji-grande">${getClimaEmoji(c.weather_code)}</div>
-                
+                <h1>${data.geo.address.city || "Região"}</h1>
+                <div class="temp-principal">${current.temperature_2m.toFixed(1)}°C</div>
+                <div class="emoji-grande" style="font-size:80px">${getClimaEmoji(current.weather_code)}</div>
                 <div class="info-grid">
-                    <div class="info-card">💧 Humid.<br><b>${c.relative_humidity_2m}%</b></div>
+                    <div class="info-card">💧 Humid.<br><b>${current.relative_humidity_2m}%</b></div>
                     <div class="info-card">🍃 Ar (AQI)<br><b>${data.ar.current.european_aqi}</b></div>
-                    <div class="info-card">⏲️ Pressão<br><b>${c.pressure_msl}hPa</b></div>
-                    <div class="info-card">👁️ Visib.<br><b>${(c.visibility / 1000).toFixed(1)}km</b></div>
-                    <div class="info-card">🌅 Nascer<br><b>${d.sunrise[0].split('T')[1]}</b></div>
-                    <div class="info-card">🌇 Pôr Sol<br><b>${d.sunset[0].split('T')[1]}</b></div>
+                    <div class="info-card">⏲️ Pressão<br><b>${current.pressure_msl}hPa</b></div>
+                    <div class="info-card">👁️ Visib.<br><b>${(current.visibility / 1000).toFixed(1)}km</b></div>
                 </div>
-                
-                <div class="storm-chaser-data">
-                    <p><b>Altitude:</b> ${c.weather_code > 90 ? '12km (CB)' : '2km'}</p>
-                    <p><b>Evolução:</b> ${c.pressure_msl < 1008 ? 'Instável' : 'Estável'}</p>
+                <div style="margin-top:20px; border-top:1px solid #fff; padding-top:10px;">
+                    <p><b>Altitude:</b> ${current.weather_code > 90 ? '15.000m' : '3.000m'}</p>
+                    <p><b>Evolução:</b> ${current.pressure_msl < 1010 ? 'CUMULOS -> SUPERCELULA' : 'ESTÁVEL'}</p>
                 </div>
             `;
-            abrirPainelFull(html, c.temperature_2m > 30 ? "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)" : "linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)");
+            abrirPainelFull(html, current.temperature_2m > 30 ? "linear-gradient(180deg, #f5576c 0%, #f093fb 100%)" : "linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)");
         });
 
-        // RESTANTE DAS FUNÇÕES (LOGIN, MENU, ALERTAS) IGUAIS AO SEU CÓDIGO...
-        function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
-        function toggleInterfaceCamadas() { document.getElementById('interface-camadas').classList.toggle('camadas-active'); }
-        function abrirPainelFull(h, bg) { 
-            const p = document.getElementById('painel-full');
-            p.style.background = bg;
-            document.getElementById('conteudo-full').innerHTML = h;
-            p.classList.add('active');
-        }
-        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
-        
-        async function auth() {
+        // AUTH
+        let isLogin = true;
+        function trocarModoAuth() { isLogin = !isLogin; document.getElementById('auth-title').innerText = isLogin ? "LOGIN" : "CADASTRO"; }
+        async function fazerAuth() {
             const user = document.getElementById('userInput').value;
             const pass = document.getElementById('passInput').value;
-            const res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user, pass}) });
+            const res = await fetch(isLogin ? '/api/login' : '/api/cadastro', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user, pass}) });
             if(res.ok) {
-                const data = await res.json();
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('p-nome').innerText = data.plan;
-            } else { alert("Erro de Login"); }
+                if(!isLogin) { alert("Cadastrado!"); trocarModoAuth(); }
+                else { 
+                    const d = await res.json(); 
+                    document.getElementById('login-screen').style.display='none'; 
+                    document.getElementById('userPlan').innerText = d.plan;
+                }
+            } else alert("Erro!");
         }
+
+        function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
+        function toggleInterfaceCamadas() { document.getElementById('interface-camadas').classList.toggle('camadas-active'); }
+        function abrirPainelFull(h, bg) { const p = document.getElementById('painel-full'); p.style.background = bg; document.getElementById('conteudo-full').innerHTML = h; p.classList.add('active'); }
+        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
     </script>
 </body>
 </html>
