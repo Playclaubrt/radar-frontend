@@ -1,48 +1,131 @@
-body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #000; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-#map { height: 100vh; width: 100vw; z-index: 1; }
-
-.leaflet-tile-pane { filter: none !important; }
-
-/* Botão Menu com Pulsação de Alerta */
-#btn-menu-lateral {
-    position: absolute; top: 20px; right: 20px; z-index: 2000;
-    background: #001a33; color: #00ff99; border: 2px solid #00ff99;
-    width: 50px; height: 50px; border-radius: 10px; font-size: 24px; cursor: pointer;
+/* --- FUNDAÇÃO --- */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background: #000;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+    overflow: hidden;
 }
 
-#btn-menu-lateral.alerta-ativo {
-    animation: pulsa-alerta 1s infinite;
-    color: white; border-color: #ff0000;
+#map {
+    height: 100vh;
+    width: 100vw;
+    z-index: 1;
 }
 
-@keyframes pulsa-alerta {
-    0% { background: #660000; box-shadow: 0 0 0px #ff0000; }
-    50% { background: #ff0000; box-shadow: 0 0 20px #ff0000; }
-    100% { background: #660000; box-shadow: 0 0 0px #ff0000; }
+/* --- MENU LATERAL (SISTEMA DE CAMADAS) --- */
+#menu-lateral {
+    position: fixed;
+    top: 0;
+    right: -100%; /* Escondido por padrão */
+    width: 320px;
+    height: 100%;
+    background: rgba(5, 15, 25, 0.95);
+    backdrop-filter: blur(10px);
+    border-left: 2px solid #00ff99;
+    z-index: 4000;
+    transition: 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
+    overflow-y: auto;
+    padding: 20px;
+    box-shadow: -5px 0 25px rgba(0,0,0,0.8);
 }
 
-#menu-lateral-65 {
-    position: fixed; top: 0; right: -70%; width: 65%; height: 100%;
-    background: #001a33; border-left: 5px solid #00ff99;
-    z-index: 4000; transition: 0.4s; padding: 80px 20px 20px; overflow-y: auto;
-}
-#menu-lateral-65.menu-active { right: 0; }
-
-.btn-camada {
-    background: #00ff99; color: #001a33; border: none; padding: 15px;
-    border-radius: 8px; font-weight: bold; width: 100%; margin-bottom: 10px; cursor: pointer;
-    text-align: left; display: flex; align-items: center; gap: 10px;
+#menu-lateral.active {
+    right: 0;
 }
 
+#btn-menu {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 2000;
+    background: #001a33;
+    color: #00ff99;
+    border: 1px solid #00ff99;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+/* --- ESTILO DAS CAMADAS NO MENU --- */
+.cat-title {
+    color: #00ff99;
+    font-size: 0.75rem;
+    font-weight: 800;
+    margin: 25px 0 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid rgba(0, 255, 153, 0.3);
+    padding-bottom: 5px;
+}
+
+.btn-layer {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #eee;
+    padding: 12px;
+    margin-bottom: 6px;
+    text-align: left;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.btn-layer span { margin-right: 10px; }
+
+.btn-layer:hover {
+    background: rgba(0, 255, 153, 0.2);
+    border-color: #00ff99;
+    transform: translateX(5px);
+}
+
+/* --- PAINEL DE INFORMAÇÕES (CLIQUE) --- */
 #painel-full {
-    position: fixed; top: 100%; left: 0; width: 100%; height: 100%;
-    z-index: 5000; transition: top 0.4s; color: white; padding: 60px 20px;
-    display: flex; flex-direction: column; align-items: center; overflow-y: auto;
+    position: fixed;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at top, #001a33, #000);
+    z-index: 5000;
+    transition: 0.5s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
+
 #painel-full.active { top: 0; }
 
-#search-container {
-    position: absolute; top: 15px; left: 15px; width: 250px; z-index: 1000; 
-    background: white; display: flex; padding: 10px; border-radius: 12px;
+.temp-txt {
+    font-size: 5rem;
+    font-weight: bold;
+    color: #00ff99;
 }
-#search-container input { flex: 1; border: none; outline: none; }
+
+.btn-close-full {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: 2px solid white;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Scrollbar Customizada */
+#menu-lateral::-webkit-scrollbar { width: 5px; }
+#menu-lateral::-webkit-scrollbar-thumb { background: #00ff99; border-radius: 10px; }
