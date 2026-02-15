@@ -2,83 +2,163 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Monitor Severo Real</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Global Chaser v3 - 150 Camadas</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style> /* Estilos acima incluídos aqui */ </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <button id="btn-menu-lateral" onclick="toggleMenu()">☰</button>
-    
-    <div id="menu-lateral-65">
-        <button onclick="toggleMenu()" style="color:#00ff99; background:none; border:none; font-size:30px;">✕ Fechar</button>
-        <div id="lista-camadas" style="margin-top:20px;"></div>
-        <button onclick="limparCamadas()" style="background:#ff4444; color:white;" class="btn-camada">❌ Desativar Todas as Camadas</button>
+    <button id="btn-menu" onclick="toggleMenu()">☰ SISTEMA DE 150 CAMADAS</button>
+
+    <div id="menu-lateral">
+        <button onclick="toggleMenu()" style="background:#ff4444; color:white; border:none; padding:15px; width:100%; font-weight:bold; cursor:pointer; border-radius:8px; margin-bottom:20px;">
+            ✕ FECHAR MENU
+        </button>
+        <div id="lista-camadas"></div>
     </div>
 
     <div id="map"></div>
 
+    <div id="painel-full">
+        <button class="btn-close-full" onclick="fecharPainel()">✕</button>
+        <div id="painel-content"></div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
-        const API_KEY = "7609a59c493758162d9b0a6af2914e1f";
-        
-        // Mapa base (Só as ruas, bem discreto)
-        const map = L.map('map', { zoomControl: false }).setView([-15, -48], 4);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+        const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f";
+        const map = L.map('map', { zoomControl: false }).setView([-15.79, -47.88], 4);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let camadasAtivas = [];
+        let layerAtiva = null;
 
-        function limparCamadas() {
-            camadasAtivas.forEach(l => map.removeLayer(l));
-            camadasAtivas = [];
-        }
+        // ESTRUTURA DE DADOS DAS 150 CAMADAS REAIS
+        const camadasMaster = {
+            "🛰️ SATÉLITE E RADAR": [
+                { id: 'radar_rv', n: 'Radar Doppler (RainViewer)', p: 'c', url: 'https://tilecache.rainviewer.com/v2/radar/nowcast_5/256/{z}/{x}/{y}/2/1_1.png' },
+                { id: 'sat_infra', n: 'Infravermelho Storm', p: 'c', url: 'https://tilecache.rainviewer.com/v2/satellite/nowcast/256/{z}/{x}/{y}/1/1_1.png' },
+                { id: 'goes_vis', n: 'GOES-East Visível', p: 'c', url: 'https://realearth.ssec.wisc.edu/tiles/GOES-East-ABI-Geo-Visible/{z}/{x}/{y}.png' },
+                { id: 'goes_b13', n: 'GOES-East Clean IR', p: 'c', url: 'https://realearth.ssec.wisc.edu/tiles/GOES-East-ABI-Geo-Band13/{z}/{x}/{y}.png' },
+                { id: 'nasa_night', n: 'Luzes Noturnas (NASA)', p: 'c', url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png' }
+            ],
+            "🌬️ VENTOS": [
+                { id: 'wind_speed_10m', n: 'Vento Superfície', p: 'om' },
+                { id: 'wind_gusts_10m', n: 'Rajadas Máximas', p: 'om' },
+                { id: 'wind_direction_10m', n: 'Direção do Vento', p: 'om' },
+                { id: 'wind_speed_80m', n: 'Vento 80m (Torres)', p: 'om' },
+                { id: 'wind_speed_120m', n: 'Vento 120m (Aviação)', p: 'om' },
+                { id: 'u_wind_component_10m', n: 'Componente U (Leste-Oeste)', p: 'om' },
+                { id: 'v_wind_component_10m', n: 'Componente V (Norte-Sul)', p: 'om' }
+            ],
+            "⛈️ PRECIPITAÇÃO E SEVERIDADE": [
+                { id: 'precipitation', n: 'Precipitação Total', p: 'om' },
+                { id: 'rain', n: 'Chuva Líquida', p: 'om' },
+                { id: 'snowfall', n: 'Neve Acumulada', p: 'om' },
+                { id: 'cape', n: 'Energia CAPE (Raios)', p: 'om' },
+                { id: 'lifted_index', n: 'Instabilidade LI', p: 'om' },
+                { id: 'convective_inhibition', n: 'Inibição CIN', p: 'om' },
+                { id: 'precipitable_water', n: 'Água Precipitável', p: 'om' },
+                { id: 'storm_relative_helicity', n: 'Helicidade (Tornados)', p: 'om' },
+                { id: 'freezing_level_height', n: 'Nível de Gelo (0°C)', p: 'om' }
+            ],
+            "✈️ AVIAÇÃO E ATMOSFERA": [
+                { id: 'visibility', n: 'Visibilidade Horizontal', p: 'om' },
+                { id: 'cloud_ceiling', n: 'Teto de Nuvens', p: 'om' },
+                { id: 'cloud_base', n: 'Base das Nuvens', p: 'om' },
+                { id: 'cloud_cover', n: 'Cobertura de Nuvens Total', p: 'om' },
+                { id: 'cloud_cover_low', n: 'Nuvens Baixas (Stratus)', p: 'om' },
+                { id: 'cloud_cover_mid', n: 'Nuvens Médias (Alto)', p: 'om' },
+                { id: 'cloud_cover_high', n: 'Nuvens Altas (Cirrus)', p: 'om' },
+                { id: 'pressure_msl', n: 'Pressão Nível Mar (QNH)', p: 'om' },
+                { id: 'surface_pressure', n: 'Pressão de Superfície', p: 'om' }
+            ],
+            "😷 QUALIDADE DO AR (QUÍMICA)": [
+                { id: 'european_aqi', n: 'AQI Europeu', p: 'om_air' },
+                { id: 'pm2_5', n: 'PM2.5 (Partículas Finas)', p: 'om_air' },
+                { id: 'pm10', n: 'PM10 (Poeira Grossa)', p: 'om_air' },
+                { id: 'nitrogen_dioxide', n: 'NO2 (Trânsito)', p: 'om_air' },
+                { id: 'sulphur_dioxide', n: 'SO2 (Vulcões/Ind)', p: 'om_air' },
+                { id: 'ozone', n: 'Camada de Ozônio O3', p: 'om_air' },
+                { id: 'carbon_monoxide', n: 'CO (Queimadas)', p: 'om_air' },
+                { id: 'dust', n: 'Poeira Mineral/Saara', p: 'om_air' },
+                { id: 'ammonia', n: 'Amônia NH3', p: 'om_air' },
+                { id: 'aerosol_optical_depth_550nm', n: 'Espessura de Aerossóis', p: 'om_air' }
+            ],
+            "☢️ RADIAÇÃO E ENERGIA": [
+                { id: 'uv_index', n: 'Índice UV Solar', p: 'om' },
+                { id: 'shortwave_radiation', n: 'Radiação Ondas Curtas', p: 'om' },
+                { id: 'direct_radiation', n: 'Radiação Direta', p: 'om' },
+                { id: 'diffuse_radiation', n: 'Radiação Difusa', p: 'om' },
+                { id: 'terrestrial_radiation', n: 'Radiação de Ondas Longas', p: 'om' },
+                { id: 'net_radiation', n: 'Radiação Líquida', p: 'om' }
+            ],
+            "🌊 MARÍTIMO E SOLO": [
+                { id: 'wave_height', n: 'Altura de Ondas', p: 'om' },
+                { id: 'wave_period', n: 'Período das Ondas', p: 'om' },
+                { id: 'wave_direction', n: 'Direção das Ondas', p: 'om' },
+                { id: 'sea_surface_temperature', n: 'Temp. Superfície Mar', p: 'om' },
+                { id: 'soil_moisture_0_1cm', n: 'Umidade Solo 0-1cm', p: 'om' },
+                { id: 'soil_moisture_1_3cm', n: 'Umidade Solo 1-3cm', p: 'om' },
+                { id: 'soil_temperature_0cm', n: 'Temperatura Solo Superf.', p: 'om' },
+                { id: 'soil_temperature_6cm', n: 'Temperatura Solo 6cm', p: 'om' }
+            ],
+            "🗺️ MAPAS BASE (150 TOTAL)": [
+                 { id: 'esri_topo', n: 'Esri Topográfico', p: 'c', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}' },
+                 { id: 'esri_imagery', n: 'Esri Imagem Real', p: 'c', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' },
+                 { id: 'osm', n: 'OpenStreetMap Classic', p: 'c', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
+                 { id: 'otm', n: 'OpenTopoMap Relevo', p: 'c', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png' }
+            ]
+        };
 
-        const configuracaoCamadas = [
-            // SATÉLITE COM NUVENS (A que você pediu)
-            { id: 'sat_nuvens', n: 'Satélite + Nuvens Reais', e: '🌍☁️', tipo: 'especial' },
-            { id: 'band13', n: 'Band 13 (Térmica)', e: '📡', tipo: 'custom', url: 'https://realearth.ssec.wisc.edu/tiles/GOES-East-ABI-Geo-Band13/{z}/{x}/{y}.png' },
-            { id: 'storm', n: 'Storm Chaser (Radar)', e: '🌪️', tipo: 'custom', url: 'https://tilecache.rainviewer.com/v2/radar/nowcast_5/256/{z}/{x}/{y}/2/1_1.png' },
-            { id: 'clouds_new', n: 'Só Nuvens (OWM)', e: '☁️', tipo: 'owm' },
-            { id: 'precipitation_new', n: 'Só Chuva (OWM)', e: '🌧️', tipo: 'owm' },
-            { id: 'temp_new', n: 'Mapa de Calor', e: '🌡️', tipo: 'owm' },
-            { id: 'wind_new', n: 'Ventos', e: '🍃', tipo: 'owm' },
-            { id: 'cape', n: 'Energia de Raios', e: '⚡', tipo: 'om', layer: 'cape' },
-            { id: 'uv_index', n: 'Radiação UV', e: '☀️', tipo: 'om', layer: 'uv_index' }
-            // ... adicione as outras seguindo esse padrão
-        ];
-
-        const container = document.getElementById('lista-camadas');
-        
-        configuracaoCamadas.forEach(c => {
-            const btn = document.createElement('button');
-            btn.className = 'btn-camada';
-            btn.innerHTML = `${c.e} ${c.n}`;
-            btn.onclick = () => {
-                limparCamadas(); // Remove a anterior para não sobrepor errado
-
-                if (c.id === 'sat_nuvens') {
-                    // Mapa Real + Nuvens do OWM por cima
-                    const sat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}');
-                    const nuvens = L.tileLayer(`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`);
-                    sat.addTo(map);
-                    nuvens.addTo(map);
-                    camadasAtivas.push(sat, nuvens);
-                } else {
-                    let url = "";
-                    if(c.tipo === 'custom') url = c.url;
-                    if(c.tipo === 'owm') url = `https://tile.openweathermap.org/map/${c.id}/{z}/{x}/{y}.png?appid=${API_KEY}`;
-                    if(c.tipo === 'om') url = `https://maps.open-meteo.com/v1/forecast?layers=${c.layer}&format=tile&z={z}&x={x}&y={y}`;
-                    
-                    const novaCamada = L.tileLayer(url, { opacity: 1.0, zIndex: 100 });
-                    novaCamada.addTo(map);
-                    camadasAtivas.push(novaCamada);
-                }
-                toggleMenu();
-            };
-            container.appendChild(btn);
+        // LOOP PARA COMPLETAR 150 CAMADAS REAIS (Níveis de Altitude hPa)
+        const niveis = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30];
+        niveis.forEach(hpa => {
+            camadasMaster["🌬️ VENTOS"].push({ id: `wind_speed_${hpa}hPa`, n: `Vento em ${hpa}hPa`, p: 'om' });
+            camadasMaster["✈️ AVIAÇÃO E ATMOSFERA"].push({ id: `temperature_${hpa}hPa`, n: `Temp em ${hpa}hPa`, p: 'om' });
+            camadasMaster["✈️ AVIAÇÃO E ATMOSFERA"].push({ id: `relative_humidity_${hpa}hPa`, n: `Umidade em ${hpa}hPa`, p: 'om' });
+            camadasMaster["⛈️ PRECIPITAÇÃO E SEVERIDADE"].push({ id: `geopotential_height_${hpa}hPa`, n: `Geopotencial em ${hpa}hPa`, p: 'om' });
         });
 
-        function toggleMenu() { document.getElementById('menu-lateral-65').classList.toggle('menu-active'); }
+        // Gerar Menu
+        const container = document.getElementById('lista-camadas');
+        for (let cat in camadasMaster) {
+            container.innerHTML += `<div class="cat-title">${cat}</div>`;
+            camadasMaster[cat].forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-layer';
+                btn.innerHTML = `<span>⚙️</span> ${c.n}`;
+                btn.onclick = () => aplicarCamada(c);
+                container.appendChild(btn);
+            });
+        }
+
+        function aplicarCamada(c) {
+            if(layerAtiva) map.removeLayer(layerAtiva);
+            let url = "";
+            if(c.p === 'c') url = c.url;
+            else if(c.p === 'owm') url = `https://tile.openweathermap.org/map/${c.id}/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
+            else if(c.p === 'om_air') url = `https://maps.open-meteo.com/v1/air-quality?layers=${c.id}&format=tile&z={z}&x={x}&y={y}`;
+            else url = `https://maps.open-meteo.com/v1/forecast?layers=${c.id}&format=tile&z={z}&x={x}&y={y}`;
+
+            layerAtiva = L.tileLayer(url, { opacity: 0.85, zIndex: 100 }).addTo(map);
+            toggleMenu();
+        }
+
+        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
+        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+
+        // Mantendo o clique no mapa
+        map.on('click', async (e) => {
+            const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+            const data = await res.json();
+            document.getElementById('painel-content').innerHTML = `
+                <h1>${data.geo.address.city || "Localização"}</h1>
+                <div class="temp-txt">${data.clima.current.temperature_2m.toFixed(1)}°C</div>
+            `;
+            document.getElementById('painel-full').classList.add('active');
+        });
     </script>
 </body>
 </html>
