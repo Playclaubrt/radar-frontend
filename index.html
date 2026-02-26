@@ -9,7 +9,10 @@
 </head>
 <body>
 
-    <div id="barra-alertas"><div id="marquee-alertas">🔅 AGUARDANDO DADOS DO INMET...</div></div>
+    <div id="controles-alertas">
+        <button class="btn-alert-toggle" id="btn-inmet" onclick="toggleAlertas('inmet')">🔅 ATIVAR INMET</button>
+        <button class="btn-alert-toggle" id="btn-noaa" onclick="toggleAlertas('noaa')">🌪️ ATIVAR NOAA</button>
+    </div>
 
     <div id="search-container">
         <input type="text" id="input-busca" placeholder="Pesquisar cidade...">
@@ -21,11 +24,11 @@
     <div id="menu-lateral">
         <button onclick="toggleMenu()" class="btn-fechar">✕ FECHAR</button>
         <div class="cat-title">MONITORAMENTO</div>
-        <button class="btn-layer" onclick="aplicarCamada('nuvens')">☁️ Nuvens</button>
-        <button class="btn-layer" onclick="aplicarCamada('tempestades')">⛈️ Tempestades</button>
-        <button class="btn-layer" onclick="aplicarCamada('satelite')">🛰️ Satélite Real</button>
-        <button class="btn-layer" onclick="aplicarCamada('vento')">🌬️ Ventos (Infra)</button>
-        <button class="btn-layer" onclick="aplicarCamada('raios')">⚡ Raios (CAPE)</button>
+        <button class="btn-layer" onclick="aplicarCamada('nuvens')">☁️ Nuvens (Satelite)</button>
+        <button class="btn-layer" onclick="aplicarCamada('tempestades')">⛈️ Tempestades (Radar)</button>
+        <button class="btn-layer" onclick="aplicarCamada('satelite')">🛰️ Mapa Real</button>
+        <button class="btn-layer" onclick="aplicarCamada('vento')">🌬️ Ventos (Kilometragem)</button>
+        <button class="btn-layer" onclick="aplicarCamada('raios')">⚡ Raios (⚡)</button>
         <button class="btn-layer" onclick="aplicarCamada('default')">🗺️ Mapa Base</button>
     </div>
 
@@ -33,7 +36,7 @@
     <div id="legenda-vento" class="hidden"><div class="gradiente-vento"></div><span>0km/h --- 120km/h</span></div>
 
     <div id="painel-full">
-        <button class="btn-close-full" onclick="fecharPainel()">✕</button>
+        <button class="btn-close-full" onclick="fecharPainel()">✕ FECHAR PAINEL</button>
         <div id="painel-content"></div>
     </div>
 
@@ -41,18 +44,66 @@
     <script>
         const map = L.map('map', { zoomControl: false }).setView([-15.79, -47.88], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
         let layerAtiva = null;
+        let markersAlertas = [];
+
+        // FUNÇÃO PARA ATIVAR/DESATIVAR ALERTAS
+        async function toggleAlertas(tipo) {
+            // Limpa alertas anteriores
+            markersAlertas.forEach(m => map.removeLayer(m));
+            markersAlertas = [];
+
+            const res = await fetch('/api/alertas');
+            const data = await res.json();
+
+            if (tipo === 'inmet' && data.inmet.length > 0) {
+                // Posiciona em Brasília
+                const marker = L.marker([-15.79, -47.88]).addTo(map)
+                    .bindTooltip("ALERTA INMET ATIVO", {permanent: true});
+                marker.on('click', () => abrirPainelAlerta('INMET', data.inmet));
+                markersAlertas.push(marker);
+                map.setView([-15.79, -47.88], 5);
+            } 
+            
+            if (tipo === 'noaa' && data.noaa.length > 0) {
+                // Posiciona em Washington D.C.
+                const marker = L.marker([38.89, -77.03]).addTo(map)
+                    .bindTooltip("NOAA WEATHER ALERT", {permanent: true});
+                marker.on('click', () => abrirPainelAlerta('NOAA', data.noaa));
+                markersAlertas.push(marker);
+                map.setView([38.89, -77.03], 5);
+            }
+        }
+
+        function abrirPainelAlerta(fonte, lista) {
+            let conteudo = `<h1>SISTEMA DE ALERTAS - ${fonte}</h1>`;
+            lista.forEach(item => {
+                conteudo += `
+                    <div class="alerta-item">
+                        <h3>${item.title || item.properties.event}</h3>
+                        <p>${item.description || item.properties.headline}</p>
+                    </div><hr>`;
+            });
+            document.getElementById('painel-content').innerHTML = conteudo;
+            document.getElementById('painel-full').classList.add('active');
+        }
 
         function aplicarCamada(tipo) {
             if(layerAtiva) map.removeLayer(layerAtiva);
             document.getElementById('legenda-vento').classList.add('hidden');
             let url = "";
+            // Satélite Real sem necessidade de Key
             if(tipo === 'nuvens') url = 'https://tilecache.rainviewer.com/v2/satellite/nowcast/256/{z}/{x}/{y}/1/1_1.png';
             if(tipo === 'tempestades') url = 'https://tilecache.rainviewer.com/v2/radar/nowcast_5/256/{z}/{x}/{y}/2/1_1.png';
             if(tipo === 'satelite') url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-            if(tipo === 'vento') { url = 'https://maps.open-meteo.com/v1/forecast?layers=wind_speed_10m&format=tile&z={z}&x={x}&y={y}'; document.getElementById('legenda-vento').classList.remove('hidden'); }
+            if(tipo === 'vento') { 
+                url = 'https://maps.open-meteo.com/v1/forecast?layers=wind_speed_10m&format=tile&z={z}&x={x}&y={y}'; 
+                document.getElementById('legenda-vento').classList.remove('hidden'); 
+            }
             if(tipo === 'raios') url = 'https://maps.open-meteo.com/v1/forecast?layers=cape&format=tile&z={z}&x={x}&y={y}';
-            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.7, zIndex: 100 }).addTo(map);
+            
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.75, zIndex: 100 }).addTo(map);
             toggleMenu();
         }
 
@@ -63,22 +114,19 @@
             if(data[0]) map.setView([data[0].lat, data[0].lon], 10);
         }
 
-        async function attAlertas() {
-            const res = await fetch('/api/alertas');
-            const data = await res.json();
-            document.getElementById('marquee-alertas').innerText = data.inmet.length ? data.inmet.map(a => `🔅 INMET: ${a.title}`).join(" | ") : "SISTEMA OPERACIONAL - SEM ALERTAS";
-        }
-
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
         map.on('click', async (e) => {
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const d = await res.json();
-            document.getElementById('painel-content').innerHTML = `<h1>${d.geo.address.city || "Local"}</h1><div class="temp-txt">${d.clima.current.temperature_2m}°C</div>`;
+            document.getElementById('painel-content').innerHTML = `
+                <h1>${d.geo.address.city || "Localização"}</h1>
+                <div class="temp-txt">${d.clima.current.temperature_2m}°C</div>
+                <p>Vento: ${d.clima.current.wind_speed_10m} km/h</p>
+            `;
             document.getElementById('painel-full').classList.add('active');
         });
-        setInterval(attAlertas, 60000); attAlertas();
     </script>
 </body>
 </html>
