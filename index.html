@@ -3,46 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor Global Chaser v3</title>
+    <title>Chaser Monitor v3</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="barra-alertas">
-        <div id="marquee-alertas">🛰️ CONECTANDO AOS SATÉLITES... AGUARDE ATUALIZAÇÃO DOS ALERTAS...</div>
-    </div>
+    <div id="barra-alertas"><div id="marquee-alertas">🔅 AGUARDANDO DADOS DO INMET...</div></div>
 
     <div id="search-container">
-        <input type="text" id="input-busca" placeholder="Buscar cidade ou coordenada...">
+        <input type="text" id="input-busca" placeholder="Pesquisar cidade...">
         <button onclick="buscarLocalizacao()">🔍</button>
     </div>
 
-    <button id="btn-menu" onclick="toggleMenu()">☰ SELETOR DE CAMADAS</button>
+    <button id="btn-menu" onclick="toggleMenu()">☰ CAMADAS</button>
 
     <div id="menu-lateral">
-        <button onclick="toggleMenu()" class="btn-fechar-menu">✕ FECHAR MENU</button>
-        <div id="lista-camadas">
-            <div class="cat-title">SISTEMA CHASER</div>
-            <button class="btn-layer" onclick="aplicarCamada('nuvens')"><span>☁️</span> Nuvens</button>
-            <button class="btn-layer" onclick="aplicarCamada('tempestades')"><span>⛈️</span> Tempestades (Radar)</button>
-            <button class="btn-layer" onclick="aplicarCamada('satelite')"><span>🛰️</span> Satélite Real</button>
-            <button class="btn-layer" onclick="aplicarCamada('vento')"><span>🌬️</span> Ventos (Infra)</button>
-            <button class="btn-layer" onclick="aplicarCamada('raios')"><span>⚡</span> Raios (CAPE)</button>
-            <button class="btn-layer" onclick="aplicarCamada('default')"><span>🗺️</span> Mapa Mundi</button>
-        </div>
+        <button onclick="toggleMenu()" class="btn-fechar">✕ FECHAR</button>
+        <div class="cat-title">MONITORAMENTO</div>
+        <button class="btn-layer" onclick="aplicarCamada('nuvens')">☁️ Nuvens</button>
+        <button class="btn-layer" onclick="aplicarCamada('tempestades')">⛈️ Tempestades</button>
+        <button class="btn-layer" onclick="aplicarCamada('satelite')">🛰️ Satélite Real</button>
+        <button class="btn-layer" onclick="aplicarCamada('vento')">🌬️ Ventos (Infra)</button>
+        <button class="btn-layer" onclick="aplicarCamada('raios')">⚡ Raios (CAPE)</button>
+        <button class="btn-layer" onclick="aplicarCamada('default')">🗺️ Mapa Base</button>
     </div>
 
     <div id="map"></div>
-
-    <div id="legenda-vento" class="hidden">
-        <div class="gradiente-vento"></div>
-        <div class="labels-vento">
-            <span>0km/h (Frio)</span>
-            <span>60km/h</span>
-            <span>120km/h+ (Quente)</span>
-        </div>
-    </div>
+    <div id="legenda-vento" class="hidden"><div class="gradiente-vento"></div><span>0km/h --- 120km/h</span></div>
 
     <div id="painel-full">
         <button class="btn-close-full" onclick="fecharPainel()">✕</button>
@@ -53,94 +41,44 @@
     <script>
         const map = L.map('map', { zoomControl: false }).setView([-15.79, -47.88], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
         let layerAtiva = null;
 
-        // --- SISTEMA DE CAMADAS ---
         function aplicarCamada(tipo) {
             if(layerAtiva) map.removeLayer(layerAtiva);
             document.getElementById('legenda-vento').classList.add('hidden');
-            
             let url = "";
-            switch(tipo) {
-                case 'nuvens':
-                    url = 'https://tilecache.rainviewer.com/v2/satellite/nowcast/256/{z}/{x}/{y}/1/1_1.png';
-                    break;
-                case 'tempestades': // Radar Doppler
-                    url = 'https://tilecache.rainviewer.com/v2/radar/nowcast_5/256/{z}/{x}/{y}/2/1_1.png';
-                    break;
-                case 'satelite':
-                    url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-                    break;
-                case 'vento':
-                    url = 'https://maps.open-meteo.com/v1/forecast?layers=wind_speed_10m&format=tile&z={z}&x={x}&y={y}';
-                    document.getElementById('legenda-vento').classList.remove('hidden');
-                    break;
-                case 'raios':
-                    url = 'https://maps.open-meteo.com/v1/forecast?layers=cape&format=tile&z={z}&x={x}&y={y}';
-                    break;
-                case 'default':
-                    if(layerAtiva) map.removeLayer(layerAtiva);
-                    layerAtiva = null;
-                    toggleMenu(); return;
-            }
-
-            if(url) {
-                layerAtiva = L.tileLayer(url, { opacity: 0.75, zIndex: 100 }).addTo(map);
-            }
+            if(tipo === 'nuvens') url = 'https://tilecache.rainviewer.com/v2/satellite/nowcast/256/{z}/{x}/{y}/1/1_1.png';
+            if(tipo === 'tempestades') url = 'https://tilecache.rainviewer.com/v2/radar/nowcast_5/256/{z}/{x}/{y}/2/1_1.png';
+            if(tipo === 'satelite') url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+            if(tipo === 'vento') { url = 'https://maps.open-meteo.com/v1/forecast?layers=wind_speed_10m&format=tile&z={z}&x={x}&y={y}'; document.getElementById('legenda-vento').classList.remove('hidden'); }
+            if(tipo === 'raios') url = 'https://maps.open-meteo.com/v1/forecast?layers=cape&format=tile&z={z}&x={x}&y={y}';
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.7, zIndex: 100 }).addTo(map);
             toggleMenu();
         }
 
-        // --- BARRA DE PESQUISA ---
         async function buscarLocalizacao() {
-            const query = document.getElementById('input-busca').value;
-            if(!query) return;
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`);
-                const data = await res.json();
-                if(data.length > 0) {
-                    const { lat, lon } = data[0];
-                    map.setView([lat, lon], 10);
-                    map.fireEvent('click', { latlng: { lat: parseFloat(lat), lng: parseFloat(lon) } });
-                }
-            } catch (e) { console.error("Erro na busca"); }
+            const q = document.getElementById('input-busca').value;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+            const data = await res.json();
+            if(data[0]) map.setView([data[0].lat, data[0].lon], 10);
         }
 
-        document.getElementById('input-busca').addEventListener('keypress', (e) => { if(e.key === 'Enter') buscarLocalizacao(); });
-
-        // --- ALERTAS DINÂMICOS ---
-        async function atualizarAlertas() {
-            try {
-                const res = await fetch('/api/alertas');
-                const data = await res.json();
-                let info = "🔅 INMET: SEM ALERTAS ATIVOS NO MOMENTO --- ";
-                if(data.inmet.length > 0 || data.noaa.length > 0) {
-                    const inmetTxt = data.inmet.map(a => `🔅 INMET: ${a.title}`).join(" | ");
-                    const noaaTxt = data.noaa.map(a => `🌪️ NOAA: ${a.properties.event}`).join(" | ");
-                    info = `${inmetTxt} | ${noaaTxt}`;
-                }
-                document.getElementById('marquee-alertas').innerText = info;
-            } catch (e) { console.error("Erro ao buscar alertas"); }
+        async function attAlertas() {
+            const res = await fetch('/api/alertas');
+            const data = await res.json();
+            document.getElementById('marquee-alertas').innerText = data.inmet.length ? data.inmet.map(a => `🔅 INMET: ${a.title}`).join(" | ") : "SISTEMA OPERACIONAL - SEM ALERTAS";
         }
 
-        // --- UI E EVENTOS ---
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
         map.on('click', async (e) => {
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
-            const data = await res.json();
-            document.getElementById('painel-content').innerHTML = `
-                <h1 style="color:#00ff99">${data.geo.address.city || data.geo.address.town || "Localização"}</h1>
-                <div class="temp-txt">${data.clima.current.temperature_2m.toFixed(1)}°C</div>
-                <p>🌬️ Vento: ${data.clima.current.wind_speed_10m} km/h | 💧 Umidade: ${data.clima.current.relative_humidity_2m}%</p>
-                <p style="font-size:0.8rem; opacity:0.7">${data.geo.display_name}</p>
-            `;
+            const d = await res.json();
+            document.getElementById('painel-content').innerHTML = `<h1>${d.geo.address.city || "Local"}</h1><div class="temp-txt">${d.clima.current.temperature_2m}°C</div>`;
             document.getElementById('painel-full').classList.add('active');
         });
-
-        setInterval(atualizarAlertas, 60000);
-        atualizarAlertas();
+        setInterval(attAlertas, 60000); attAlertas();
     </script>
 </body>
 </html>
