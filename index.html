@@ -3,22 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor Global Chaser v3 - 150 Camadas</title>
+    <title>Monitor Global Chaser v3</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <button id="btn-menu" onclick="toggleMenu()">☰ SISTEMA DE 150 CAMADAS</button>
+    <div id="barra-alertas">
+        <div id="marquee-alertas">🛰️ CONECTANDO AOS SATÉLITES... AGUARDE ATUALIZAÇÃO DOS ALERTAS...</div>
+    </div>
+
+    <div id="search-container">
+        <input type="text" id="input-busca" placeholder="Buscar cidade ou coordenada...">
+        <button onclick="buscarLocalizacao()">🔍</button>
+    </div>
+
+    <button id="btn-menu" onclick="toggleMenu()">☰ SELETOR DE CAMADAS</button>
 
     <div id="menu-lateral">
-        <button onclick="toggleMenu()" style="background:#ff4444; color:white; border:none; padding:15px; width:100%; font-weight:bold; cursor:pointer; border-radius:8px; margin-bottom:20px;">
-            ✕ FECHAR MENU
-        </button>
-        <div id="lista-camadas"></div>
+        <button onclick="toggleMenu()" class="btn-fechar-menu">✕ FECHAR MENU</button>
+        <div id="lista-camadas">
+            <div class="cat-title">SISTEMA CHASER</div>
+            <button class="btn-layer" onclick="aplicarCamada('nuvens')"><span>☁️</span> Nuvens</button>
+            <button class="btn-layer" onclick="aplicarCamada('tempestades')"><span>⛈️</span> Tempestades (Radar)</button>
+            <button class="btn-layer" onclick="aplicarCamada('satelite')"><span>🛰️</span> Satélite Real</button>
+            <button class="btn-layer" onclick="aplicarCamada('vento')"><span>🌬️</span> Ventos (Infra)</button>
+            <button class="btn-layer" onclick="aplicarCamada('raios')"><span>⚡</span> Raios (CAPE)</button>
+            <button class="btn-layer" onclick="aplicarCamada('default')"><span>🗺️</span> Mapa Mundi</button>
+        </div>
     </div>
 
     <div id="map"></div>
+
+    <div id="legenda-vento" class="hidden">
+        <div class="gradiente-vento"></div>
+        <div class="labels-vento">
+            <span>0km/h (Frio)</span>
+            <span>60km/h</span>
+            <span>120km/h+ (Quente)</span>
+        </div>
+    </div>
 
     <div id="painel-full">
         <button class="btn-close-full" onclick="fecharPainel()">✕</button>
@@ -26,139 +50,97 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <script>
-        const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f";
         const map = L.map('map', { zoomControl: false }).setView([-15.79, -47.88], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
         let layerAtiva = null;
 
-        // ESTRUTURA DE DADOS DAS 150 CAMADAS REAIS
-        const camadasMaster = {
-            "🛰️ SATÉLITE E RADAR": [
-                { id: 'radar_rv', n: 'Radar Doppler (RainViewer)', p: 'c', url: 'https://tilecache.rainviewer.com/v2/radar/nowcast_5/256/{z}/{x}/{y}/2/1_1.png' },
-                { id: 'sat_infra', n: 'Infravermelho Storm', p: 'c', url: 'https://tilecache.rainviewer.com/v2/satellite/nowcast/256/{z}/{x}/{y}/1/1_1.png' },
-                { id: 'goes_vis', n: 'GOES-East Visível', p: 'c', url: 'https://realearth.ssec.wisc.edu/tiles/GOES-East-ABI-Geo-Visible/{z}/{x}/{y}.png' },
-                { id: 'goes_b13', n: 'GOES-East Clean IR', p: 'c', url: 'https://realearth.ssec.wisc.edu/tiles/GOES-East-ABI-Geo-Band13/{z}/{x}/{y}.png' },
-                { id: 'nasa_night', n: 'Luzes Noturnas (NASA)', p: 'c', url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png' }
-            ],
-            "🌬️ VENTOS": [
-                { id: 'wind_speed_10m', n: 'Vento Superfície', p: 'om' },
-                { id: 'wind_gusts_10m', n: 'Rajadas Máximas', p: 'om' },
-                { id: 'wind_direction_10m', n: 'Direção do Vento', p: 'om' },
-                { id: 'wind_speed_80m', n: 'Vento 80m (Torres)', p: 'om' },
-                { id: 'wind_speed_120m', n: 'Vento 120m (Aviação)', p: 'om' },
-                { id: 'u_wind_component_10m', n: 'Componente U (Leste-Oeste)', p: 'om' },
-                { id: 'v_wind_component_10m', n: 'Componente V (Norte-Sul)', p: 'om' }
-            ],
-            "⛈️ PRECIPITAÇÃO E SEVERIDADE": [
-                { id: 'precipitation', n: 'Precipitação Total', p: 'om' },
-                { id: 'rain', n: 'Chuva Líquida', p: 'om' },
-                { id: 'snowfall', n: 'Neve Acumulada', p: 'om' },
-                { id: 'cape', n: 'Energia CAPE (Raios)', p: 'om' },
-                { id: 'lifted_index', n: 'Instabilidade LI', p: 'om' },
-                { id: 'convective_inhibition', n: 'Inibição CIN', p: 'om' },
-                { id: 'precipitable_water', n: 'Água Precipitável', p: 'om' },
-                { id: 'storm_relative_helicity', n: 'Helicidade (Tornados)', p: 'om' },
-                { id: 'freezing_level_height', n: 'Nível de Gelo (0°C)', p: 'om' }
-            ],
-            "✈️ AVIAÇÃO E ATMOSFERA": [
-                { id: 'visibility', n: 'Visibilidade Horizontal', p: 'om' },
-                { id: 'cloud_ceiling', n: 'Teto de Nuvens', p: 'om' },
-                { id: 'cloud_base', n: 'Base das Nuvens', p: 'om' },
-                { id: 'cloud_cover', n: 'Cobertura de Nuvens Total', p: 'om' },
-                { id: 'cloud_cover_low', n: 'Nuvens Baixas (Stratus)', p: 'om' },
-                { id: 'cloud_cover_mid', n: 'Nuvens Médias (Alto)', p: 'om' },
-                { id: 'cloud_cover_high', n: 'Nuvens Altas (Cirrus)', p: 'om' },
-                { id: 'pressure_msl', n: 'Pressão Nível Mar (QNH)', p: 'om' },
-                { id: 'surface_pressure', n: 'Pressão de Superfície', p: 'om' }
-            ],
-            "😷 QUALIDADE DO AR (QUÍMICA)": [
-                { id: 'european_aqi', n: 'AQI Europeu', p: 'om_air' },
-                { id: 'pm2_5', n: 'PM2.5 (Partículas Finas)', p: 'om_air' },
-                { id: 'pm10', n: 'PM10 (Poeira Grossa)', p: 'om_air' },
-                { id: 'nitrogen_dioxide', n: 'NO2 (Trânsito)', p: 'om_air' },
-                { id: 'sulphur_dioxide', n: 'SO2 (Vulcões/Ind)', p: 'om_air' },
-                { id: 'ozone', n: 'Camada de Ozônio O3', p: 'om_air' },
-                { id: 'carbon_monoxide', n: 'CO (Queimadas)', p: 'om_air' },
-                { id: 'dust', n: 'Poeira Mineral/Saara', p: 'om_air' },
-                { id: 'ammonia', n: 'Amônia NH3', p: 'om_air' },
-                { id: 'aerosol_optical_depth_550nm', n: 'Espessura de Aerossóis', p: 'om_air' }
-            ],
-            "☢️ RADIAÇÃO E ENERGIA": [
-                { id: 'uv_index', n: 'Índice UV Solar', p: 'om' },
-                { id: 'shortwave_radiation', n: 'Radiação Ondas Curtas', p: 'om' },
-                { id: 'direct_radiation', n: 'Radiação Direta', p: 'om' },
-                { id: 'diffuse_radiation', n: 'Radiação Difusa', p: 'om' },
-                { id: 'terrestrial_radiation', n: 'Radiação de Ondas Longas', p: 'om' },
-                { id: 'net_radiation', n: 'Radiação Líquida', p: 'om' }
-            ],
-            "🌊 MARÍTIMO E SOLO": [
-                { id: 'wave_height', n: 'Altura de Ondas', p: 'om' },
-                { id: 'wave_period', n: 'Período das Ondas', p: 'om' },
-                { id: 'wave_direction', n: 'Direção das Ondas', p: 'om' },
-                { id: 'sea_surface_temperature', n: 'Temp. Superfície Mar', p: 'om' },
-                { id: 'soil_moisture_0_1cm', n: 'Umidade Solo 0-1cm', p: 'om' },
-                { id: 'soil_moisture_1_3cm', n: 'Umidade Solo 1-3cm', p: 'om' },
-                { id: 'soil_temperature_0cm', n: 'Temperatura Solo Superf.', p: 'om' },
-                { id: 'soil_temperature_6cm', n: 'Temperatura Solo 6cm', p: 'om' }
-            ],
-            "🗺️ MAPAS BASE (150 TOTAL)": [
-                 { id: 'esri_topo', n: 'Esri Topográfico', p: 'c', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}' },
-                 { id: 'esri_imagery', n: 'Esri Imagem Real', p: 'c', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' },
-                 { id: 'osm', n: 'OpenStreetMap Classic', p: 'c', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
-                 { id: 'otm', n: 'OpenTopoMap Relevo', p: 'c', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png' }
-            ]
-        };
-
-        // LOOP PARA COMPLETAR 150 CAMADAS REAIS (Níveis de Altitude hPa)
-        const niveis = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30];
-        niveis.forEach(hpa => {
-            camadasMaster["🌬️ VENTOS"].push({ id: `wind_speed_${hpa}hPa`, n: `Vento em ${hpa}hPa`, p: 'om' });
-            camadasMaster["✈️ AVIAÇÃO E ATMOSFERA"].push({ id: `temperature_${hpa}hPa`, n: `Temp em ${hpa}hPa`, p: 'om' });
-            camadasMaster["✈️ AVIAÇÃO E ATMOSFERA"].push({ id: `relative_humidity_${hpa}hPa`, n: `Umidade em ${hpa}hPa`, p: 'om' });
-            camadasMaster["⛈️ PRECIPITAÇÃO E SEVERIDADE"].push({ id: `geopotential_height_${hpa}hPa`, n: `Geopotencial em ${hpa}hPa`, p: 'om' });
-        });
-
-        // Gerar Menu
-        const container = document.getElementById('lista-camadas');
-        for (let cat in camadasMaster) {
-            container.innerHTML += `<div class="cat-title">${cat}</div>`;
-            camadasMaster[cat].forEach(c => {
-                const btn = document.createElement('button');
-                btn.className = 'btn-layer';
-                btn.innerHTML = `<span>⚙️</span> ${c.n}`;
-                btn.onclick = () => aplicarCamada(c);
-                container.appendChild(btn);
-            });
-        }
-
-        function aplicarCamada(c) {
+        // --- SISTEMA DE CAMADAS ---
+        function aplicarCamada(tipo) {
             if(layerAtiva) map.removeLayer(layerAtiva);
+            document.getElementById('legenda-vento').classList.add('hidden');
+            
             let url = "";
-            if(c.p === 'c') url = c.url;
-            else if(c.p === 'owm') url = `https://tile.openweathermap.org/map/${c.id}/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            else if(c.p === 'om_air') url = `https://maps.open-meteo.com/v1/air-quality?layers=${c.id}&format=tile&z={z}&x={x}&y={y}`;
-            else url = `https://maps.open-meteo.com/v1/forecast?layers=${c.id}&format=tile&z={z}&x={x}&y={y}`;
+            switch(tipo) {
+                case 'nuvens':
+                    url = 'https://tilecache.rainviewer.com/v2/satellite/nowcast/256/{z}/{x}/{y}/1/1_1.png';
+                    break;
+                case 'tempestades': // Radar Doppler
+                    url = 'https://tilecache.rainviewer.com/v2/radar/nowcast_5/256/{z}/{x}/{y}/2/1_1.png';
+                    break;
+                case 'satelite':
+                    url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+                    break;
+                case 'vento':
+                    url = 'https://maps.open-meteo.com/v1/forecast?layers=wind_speed_10m&format=tile&z={z}&x={x}&y={y}';
+                    document.getElementById('legenda-vento').classList.remove('hidden');
+                    break;
+                case 'raios':
+                    url = 'https://maps.open-meteo.com/v1/forecast?layers=cape&format=tile&z={z}&x={x}&y={y}';
+                    break;
+                case 'default':
+                    if(layerAtiva) map.removeLayer(layerAtiva);
+                    layerAtiva = null;
+                    toggleMenu(); return;
+            }
 
-            layerAtiva = L.tileLayer(url, { opacity: 0.85, zIndex: 100 }).addTo(map);
+            if(url) {
+                layerAtiva = L.tileLayer(url, { opacity: 0.75, zIndex: 100 }).addTo(map);
+            }
             toggleMenu();
         }
 
+        // --- BARRA DE PESQUISA ---
+        async function buscarLocalizacao() {
+            const query = document.getElementById('input-busca').value;
+            if(!query) return;
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`);
+                const data = await res.json();
+                if(data.length > 0) {
+                    const { lat, lon } = data[0];
+                    map.setView([lat, lon], 10);
+                    map.fireEvent('click', { latlng: { lat: parseFloat(lat), lng: parseFloat(lon) } });
+                }
+            } catch (e) { console.error("Erro na busca"); }
+        }
+
+        document.getElementById('input-busca').addEventListener('keypress', (e) => { if(e.key === 'Enter') buscarLocalizacao(); });
+
+        // --- ALERTAS DINÂMICOS ---
+        async function atualizarAlertas() {
+            try {
+                const res = await fetch('/api/alertas');
+                const data = await res.json();
+                let info = "🔅 INMET: SEM ALERTAS ATIVOS NO MOMENTO --- ";
+                if(data.inmet.length > 0 || data.noaa.length > 0) {
+                    const inmetTxt = data.inmet.map(a => `🔅 INMET: ${a.title}`).join(" | ");
+                    const noaaTxt = data.noaa.map(a => `🌪️ NOAA: ${a.properties.event}`).join(" | ");
+                    info = `${inmetTxt} | ${noaaTxt}`;
+                }
+                document.getElementById('marquee-alertas').innerText = info;
+            } catch (e) { console.error("Erro ao buscar alertas"); }
+        }
+
+        // --- UI E EVENTOS ---
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
-        // Mantendo o clique no mapa
         map.on('click', async (e) => {
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const data = await res.json();
             document.getElementById('painel-content').innerHTML = `
-                <h1>${data.geo.address.city || "Localização"}</h1>
+                <h1 style="color:#00ff99">${data.geo.address.city || data.geo.address.town || "Localização"}</h1>
                 <div class="temp-txt">${data.clima.current.temperature_2m.toFixed(1)}°C</div>
+                <p>🌬️ Vento: ${data.clima.current.wind_speed_10m} km/h | 💧 Umidade: ${data.clima.current.relative_humidity_2m}%</p>
+                <p style="font-size:0.8rem; opacity:0.7">${data.geo.display_name}</p>
             `;
             document.getElementById('painel-full').classList.add('active');
         });
+
+        setInterval(atualizarAlertas, 60000);
+        atualizarAlertas();
     </script>
 </body>
 </html>
