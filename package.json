@@ -1,5 +1,5 @@
 {
-  "name": "chaser-v3",
+  "name": "chaser-v3-final",
   "version": "3.0.0",
   "main": "server.js",
   "scripts": { "start": "node server.js" },
