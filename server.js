@@ -38,4 +38,4 @@ app.get('/api/clima-clique', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Monitor Online na porta ${PORT}`));
