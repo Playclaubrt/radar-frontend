@@ -1,32 +1,42 @@
 body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; }
 
-/* Barra INMET */
-#barra-alertas { position: fixed; top: 0; width: 100%; height: 35px; background: #ffcc00; color: #000; z-index: 5000; display: flex; align-items: center; overflow: hidden; font-weight: bold; border-bottom: 2px solid #000; }
-#marquee-alertas { white-space: nowrap; animation: scroll 40s linear infinite; padding-left: 100%; }
-@keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+/* Botões de Alerta no Topo */
+#controles-alertas {
+    position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+    z-index: 5000; display: flex; gap: 10px;
+}
+.btn-alert-toggle {
+    background: #222; color: #00ff99; border: 2px solid #00ff99;
+    padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;
+}
+.btn-alert-toggle:hover { background: #00ff99; color: #000; }
 
 /* Busca */
-#search-container { position: fixed; top: 50px; left: 20px; z-index: 2000; background: rgba(0,20,40,0.9); padding: 5px 15px; border-radius: 20px; border: 1px solid #00ff99; display: flex; }
+#search-container { position: fixed; top: 70px; left: 20px; z-index: 2000; background: rgba(0,20,40,0.9); padding: 5px 15px; border-radius: 20px; border: 1px solid #00ff99; display: flex; }
 #input-busca { background: none; border: none; color: white; outline: none; width: 180px; }
 #search-container button { background: none; border: none; color: #00ff99; cursor: pointer; }
 
-/* Menu */
-#btn-menu { position: fixed; top: 50px; right: 20px; z-index: 2000; background: #001a33; color: #00ff99; border: 1px solid #00ff99; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+/* Menu Lateral */
+#btn-menu { position: fixed; top: 70px; right: 20px; z-index: 2000; background: #001a33; color: #00ff99; border: 1px solid #00ff99; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
 #menu-lateral { position: fixed; top: 0; right: -320px; width: 280px; height: 100%; background: rgba(5,10,20,0.95); z-index: 4000; transition: 0.4s; padding: 20px; border-left: 2px solid #00ff99; }
 #menu-lateral.active { right: 0; }
 .btn-layer { width: 100%; padding: 12px; margin: 5px 0; background: #222; border: 1px solid #444; color: #fff; text-align: left; cursor: pointer; border-radius: 5px; }
 .btn-layer:hover { background: #00ff99; color: #000; }
-.cat-title { color: #00ff99; font-size: 0.8rem; margin: 20px 0 10px; border-bottom: 1px solid #00ff99; }
-.btn-fechar { background: #ff4444; color: #fff; width: 100%; padding: 10px; border: none; cursor: pointer; font-weight: bold; }
 
-/* Painel Clique */
-#painel-full { position: fixed; top: 100%; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #001a33, #000); z-index: 6000; transition: 0.5s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-#painel-full.active { top: 0; }
-.temp-txt { font-size: 5rem; color: #00ff99; font-weight: bold; }
-.btn-close-full { position: absolute; top: 20px; right: 20px; background: none; border: 2px solid #fff; color: #fff; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; }
+/* Painel Full Screen (Cobre tudo) */
+#painel-full {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 5, 15, 0.98); z-index: 9999;
+    transform: translateY(100%); transition: 0.5s ease;
+    display: flex; flex-direction: column; align-items: center; padding: 50px;
+    box-sizing: border-box; overflow-y: auto;
+}
+#painel-full.active { transform: translateY(0); }
+.temp-txt { font-size: 6rem; color: #00ff99; font-weight: bold; }
+.btn-close-full { background: #ff4444; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 20px; }
 
-/* Legenda */
+/* Legenda Ventos */
 #legenda-vento { position: fixed; bottom: 20px; right: 20px; z-index: 2000; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; border: 1px solid #00ff99; font-size: 0.7rem; }
 .gradiente-vento { width: 150px; height: 10px; background: linear-gradient(to right, blue, green, yellow, red); margin-bottom: 5px; }
 .hidden { display: none; }
