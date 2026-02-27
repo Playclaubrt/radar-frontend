@@ -11,7 +11,7 @@ app.get('/api/alertas', async (req, res) => {
         const [resInmet, resNoaa] = await Promise.allSettled([
             axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/', { timeout: 5000 }),
             axios.get('https://api.weather.gov/alerts/active?status=actual', { 
-                headers: { 'User-Agent': 'MonitorGlobalChaser/1.0' },
+                headers: { 'User-Agent': 'ChaserMonitor/1.0' },
                 timeout: 5000 
             })
         ]);
@@ -20,7 +20,7 @@ app.get('/api/alertas', async (req, res) => {
             const parser = new xml2js.Parser();
             const result = await parser.parseStringPromise(resInmet.value.data);
             if (result.rss.channel[0].item) {
-                inmet = result.rss.channel[0].item.map(item => ({ title: item.title[0] }));
+                inmet = result.rss.channel[0].item.map(i => ({ title: i.title[0], description: i.description[0] }));
             }
         }
         let noaa = resNoaa.status === 'fulfilled' ? resNoaa.value.data.features : [];
@@ -31,15 +31,11 @@ app.get('/api/alertas', async (req, res) => {
 app.get('/api/clima-clique', async (req, res) => {
     const { lat, lon } = req.query;
     try {
-        const climaUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`;
-        const geoUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
-        const [clima, geo] = await Promise.all([
-            axios.get(climaUrl),
-            axios.get(geoUrl, { headers: { 'User-Agent': 'MonitorGlobalChaser/1.0' } })
-        ]);
+        const clima = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m`);
+        const geo = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, { headers: {'User-Agent':'Chaser'} });
         res.json({ clima: clima.data, geo: geo.data });
-    } catch (e) { res.status(500).json({ error: true }); }
+    } catch (e) { res.status(500).send(); }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
