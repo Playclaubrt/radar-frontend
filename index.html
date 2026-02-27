@@ -9,26 +9,24 @@
 </head>
 <body>
 
-    <div id="controles-alertas">
-        <button class="btn-alert-toggle" id="btn-inmet" onclick="toggleAlertas('inmet')">🔅 ATIVAR INMET</button>
-        <button class="btn-alert-toggle" id="btn-noaa" onclick="toggleAlertas('noaa')">🌪️ ATIVAR NOAA</button>
-    </div>
-
     <div id="search-container">
         <input type="text" id="input-busca" placeholder="Pesquisar cidade...">
         <button onclick="buscarLocalizacao()">🔍</button>
     </div>
 
-    <button id="btn-menu" onclick="toggleMenu()">☰ CAMADAS</button>
+    <div id="container-menu">
+        <button id="btn-menu" onclick="toggleMenu()">☰ CAMADAS</button>
+        <button id="btn-alertas-master" onclick="ativarAlertasGerais()">🔅 NOAA & INMET ☁️</button>
+    </div>
 
     <div id="menu-lateral">
         <button onclick="toggleMenu()" class="btn-fechar">✕ FECHAR</button>
         <div class="cat-title">MONITORAMENTO</div>
-        <button class="btn-layer" onclick="aplicarCamada('nuvens')">☁️ Nuvens (Satelite)</button>
+        <button class="btn-layer" onclick="aplicarCamada('nuvens')">☁️ Nuvens (OWM)</button>
         <button class="btn-layer" onclick="aplicarCamada('tempestades')">⛈️ Tempestades (Radar)</button>
         <button class="btn-layer" onclick="aplicarCamada('satelite')">🛰️ Mapa Real</button>
-        <button class="btn-layer" onclick="aplicarCamada('vento')">🌬️ Ventos (Kilometragem)</button>
-        <button class="btn-layer" onclick="aplicarCamada('raios')">⚡ Raios (⚡)</button>
+        <button class="btn-layer" onclick="aplicarCamada('vento')">🌬️ Ventos (KM/H)</button>
+        <button class="btn-layer" onclick="aplicarCamada('raios')">⚡ Raios (CAPE)</button>
         <button class="btn-layer" onclick="aplicarCamada('default')">🗺️ Mapa Base</button>
     </div>
 
@@ -42,50 +40,40 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        const API_KEY_OWM = "SUA_API_KEY_AQUI"; // COLOQUE SUA CHAVE AQUI
         const map = L.map('map', { zoomControl: false }).setView([-15.79, -47.88], 4);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
         let layerAtiva = null;
         let markersAlertas = [];
 
-        // FUNÇÃO PARA ATIVAR/DESATIVAR ALERTAS
-        async function toggleAlertas(tipo) {
-            // Limpa alertas anteriores
+        async function ativarAlertasGerais() {
             markersAlertas.forEach(m => map.removeLayer(m));
             markersAlertas = [];
 
             const res = await fetch('/api/alertas');
             const data = await res.json();
 
-            if (tipo === 'inmet' && data.inmet.length > 0) {
-                // Posiciona em Brasília
-                const marker = L.marker([-15.79, -47.88]).addTo(map)
-                    .bindTooltip("ALERTA INMET ATIVO", {permanent: true});
-                marker.on('click', () => abrirPainelAlerta('INMET', data.inmet));
-                markersAlertas.push(marker);
-                map.setView([-15.79, -47.88], 5);
-            } 
-            
-            if (tipo === 'noaa' && data.noaa.length > 0) {
-                // Posiciona em Washington D.C.
-                const marker = L.marker([38.89, -77.03]).addTo(map)
-                    .bindTooltip("NOAA WEATHER ALERT", {permanent: true});
-                marker.on('click', () => abrirPainelAlerta('NOAA', data.noaa));
-                markersAlertas.push(marker);
-                map.setView([38.89, -77.03], 5);
-            }
+            // Ícone Brasil (Brasília)
+            const mBrasil = L.marker([-15.79, -47.88]).addTo(map).bindTooltip("INMET 🔅", {permanent:true});
+            mBrasil.on('click', () => abrirPainelAlerta('INMET BRASIL', data.inmet));
+            markersAlertas.push(mBrasil);
+
+            // Ícone USA (Washington)
+            const mUSA = L.marker([38.89, -77.03]).addTo(map).bindTooltip("NOAA ☁️", {permanent:true});
+            mUSA.on('click', () => abrirPainelAlerta('NOAA USA', data.noaa));
+            markersAlertas.push(mUSA);
+
+            alert("Alertas Ativados nas Capitais!");
         }
 
         function abrirPainelAlerta(fonte, lista) {
-            let conteudo = `<h1>SISTEMA DE ALERTAS - ${fonte}</h1>`;
+            let html = `<h1>${fonte}</h1>`;
+            if(lista.length === 0) html += "<p>Nenhum alerta crítico no momento.</p>";
             lista.forEach(item => {
-                conteudo += `
-                    <div class="alerta-item">
-                        <h3>${item.title || item.properties.event}</h3>
-                        <p>${item.description || item.properties.headline}</p>
-                    </div><hr>`;
+                html += `<div class="alerta-box"><h3>${item.title || item.properties.event}</h3><p>${item.description || item.properties.headline}</p></div><hr>`;
             });
-            document.getElementById('painel-content').innerHTML = conteudo;
+            document.getElementById('painel-content').innerHTML = html;
             document.getElementById('painel-full').classList.add('active');
         }
 
@@ -93,8 +81,8 @@
             if(layerAtiva) map.removeLayer(layerAtiva);
             document.getElementById('legenda-vento').classList.add('hidden');
             let url = "";
-            // Satélite Real sem necessidade de Key
-            if(tipo === 'nuvens') url = 'https://tilecache.rainviewer.com/v2/satellite/nowcast/256/{z}/{x}/{y}/1/1_1.png';
+
+            if(tipo === 'nuvens') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = 'https://tilecache.rainviewer.com/v2/radar/nowcast_5/256/{z}/{x}/{y}/2/1_1.png';
             if(tipo === 'satelite') url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
             if(tipo === 'vento') { 
@@ -103,7 +91,7 @@
             }
             if(tipo === 'raios') url = 'https://maps.open-meteo.com/v1/forecast?layers=cape&format=tile&z={z}&x={x}&y={y}';
             
-            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.75, zIndex: 100 }).addTo(map);
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100 }).addTo(map);
             toggleMenu();
         }
 
@@ -120,11 +108,7 @@
         map.on('click', async (e) => {
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const d = await res.json();
-            document.getElementById('painel-content').innerHTML = `
-                <h1>${d.geo.address.city || "Localização"}</h1>
-                <div class="temp-txt">${d.clima.current.temperature_2m}°C</div>
-                <p>Vento: ${d.clima.current.wind_speed_10m} km/h</p>
-            `;
+            document.getElementById('painel-content').innerHTML = `<h1>${d.geo.address.city || "Local"}</h1><div class="temp-txt">${d.clima.current.temperature_2m}°C</div>`;
             document.getElementById('painel-full').classList.add('active');
         });
     </script>
