@@ -1,11 +1,8 @@
 {
-  "name": "monitor-global-chaser",
+  "name": "chaser-v3",
   "version": "3.0.0",
-  "description": "Monitor Climático 6 Camadas",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
+  "scripts": { "start": "node server.js" },
   "dependencies": {
     "express": "^4.18.2",
     "axios": "^1.6.0",
