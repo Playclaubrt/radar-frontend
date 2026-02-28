@@ -1,36 +1,36 @@
 body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; }
 
-#container-menu {
-    position: fixed; top: 15px; right: 20px; z-index: 5000;
-    display: flex; flex-direction: column; gap: 10px;
-}
+/* Controles */
+#container-controles { position: fixed; top: 20px; right: 20px; z-index: 5000; display: flex; flex-direction: column; gap: 10px; }
+#btn-menu, #btn-ativar-alertas { background: #001a33; color: #00ff99; border: 2px solid #00ff99; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+#btn-ativar-alertas { background: #ffcc00; color: #000; border-color: #000; }
 
-#btn-menu, #btn-alertas-master {
-    background: #001a33; color: #00ff99; border: 2px solid #00ff99;
-    padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;
-}
+/* Icones no Mapa */
+.map-icon-alerta { font-size: 24px; text-align: center; cursor: pointer; filter: drop-shadow(0 0 5px #000); }
 
-#btn-alertas-master { background: #ffcc00; color: #000; border-color: #000; }
-
-#search-container { position: fixed; top: 15px; left: 20px; z-index: 2000; background: rgba(0,20,40,0.9); padding: 5px 15px; border-radius: 20px; border: 1px solid #00ff99; display: flex; }
-#input-busca { background: none; border: none; color: white; outline: none; width: 180px; }
-#search-container button { background: none; border: none; color: #00ff99; cursor: pointer; }
-
-#menu-lateral { position: fixed; top: 0; right: -320px; width: 280px; height: 100%; background: rgba(5,10,20,0.98); z-index: 6000; transition: 0.4s; padding: 20px; border-left: 2px solid #00ff99; }
-#menu-lateral.active { right: 0; }
-.btn-layer { width: 100%; padding: 12px; margin: 5px 0; background: #222; border: 1px solid #444; color: #fff; text-align: left; cursor: pointer; border-radius: 5px; }
-
+/* Painel Full Screen */
 #painel-full {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: #000; z-index: 9999; transform: translateY(100%); transition: 0.5s;
-    display: flex; flex-direction: column; align-items: center; padding: 40px; overflow-y: auto;
+    z-index: 9999; transform: translateY(100%); transition: 0.5s cubic-bezier(0.1, 0.7, 1.0, 0.1);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; box-sizing: border-box;
 }
 #painel-full.active { transform: translateY(0); }
-.temp-txt { font-size: 6rem; color: #00ff99; }
-.btn-close-full { background: #ff4444; color: #fff; padding: 15px; border: none; cursor: pointer; width: 200px; margin-bottom: 20px; }
-.alerta-box { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; width: 80%; }
 
-#legenda-vento { position: fixed; bottom: 20px; right: 20px; z-index: 2000; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; border: 1px solid #00ff99; font-size: 0.7rem; }
-.gradiente-vento { width: 150px; height: 10px; background: linear-gradient(to right, blue, green, yellow, red); }
-.hidden { display: none; }
+/* Degradê Azul solicitado */
+.clima-view { background: linear-gradient(to bottom, #001a33, #0066ff); }
+.alerta-view { background: #00050a; }
+
+.temp-val { font-size: 9rem; font-weight: bold; color: #00ff99; }
+.clima-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 700px; }
+.c-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; font-size: 1.2rem; border: 1px solid rgba(0,255,153,0.2); }
+
+.btn-close-full { position: absolute; top: 20px; right: 20px; background: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+
+/* Busca e Menu Lateral */
+#search-container { position: fixed; top: 20px; left: 20px; z-index: 5000; background: rgba(0,0,0,0.8); padding: 5px; border-radius: 20px; border: 1px solid #00ff99; }
+#input-busca { background: none; border: none; color: white; padding: 5px 15px; outline: none; width: 180px; }
+#menu-lateral { position: fixed; top: 0; right: -320px; width: 300px; height: 100%; background: #000; z-index: 6000; transition: 0.4s; padding: 25px; border-left: 2px solid #00ff99; }
+#menu-lateral.active { right: 0; }
+.btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: #fff; border: 1px solid #333; cursor: pointer; text-align: left; }
+.cat-title { color: #00ff99; font-size: 0.7rem; margin-top: 25px; border-bottom: 1px solid #00ff99; }
