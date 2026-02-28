@@ -1,36 +1,190 @@
-body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
-#map { height: 100vh; width: 100vw; z-index: 1; }
-
-/* Controles */
-#container-controles { position: fixed; top: 20px; right: 20px; z-index: 5000; display: flex; flex-direction: column; gap: 10px; }
-#btn-menu, #btn-ativar-alertas { background: #001a33; color: #00ff99; border: 2px solid #00ff99; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-#btn-ativar-alertas { background: #ffcc00; color: #000; border-color: #000; }
-
-/* Icones no Mapa */
-.map-icon-alerta { font-size: 24px; text-align: center; cursor: pointer; filter: drop-shadow(0 0 5px #000); }
-
-/* Painel Full Screen */
-#painel-full {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 9999; transform: translateY(100%); transition: 0.5s cubic-bezier(0.1, 0.7, 1.0, 0.1);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; box-sizing: border-box;
+/* RESET BÁSICO */
+body, html { 
+    margin: 0; 
+    padding: 0; 
+    height: 100%; 
+    background: #000; 
+    color: white; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    overflow: hidden; /* Impede scroll na página principal, apenas no mapa */
 }
+
+#map { 
+    height: 100vh; 
+    width: 100vw; 
+    z-index: 1; 
+}
+
+/* BOTÕES DE CONTROLE */
+#container-controles { 
+    position: fixed; 
+    top: 20px; 
+    right: 20px; 
+    z-index: 5000; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+}
+
+#btn-menu, #btn-ativar-alertas { 
+    background: #001a33; 
+    color: #00ff99; 
+    border: 2px solid #00ff99; 
+    padding: 12px 20px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    transition: 0.3s;
+}
+
+#btn-ativar-alertas { 
+    background: #ffcc00; 
+    color: #000; 
+    border-color: #000; 
+}
+
+/* BUSCA */
+#search-container { 
+    position: fixed; 
+    top: 20px; 
+    left: 20px; 
+    z-index: 5000; 
+    background: rgba(0,0,0,0.85); 
+    padding: 8px; 
+    border-radius: 30px; 
+    border: 1px solid #00ff99; 
+    display: flex;
+}
+
+#input-busca { 
+    background: none; 
+    border: none; 
+    color: white; 
+    padding: 5px 15px; 
+    outline: none; 
+    width: 200px; 
+}
+
+/* MENU LATERAL - CORREÇÃO DE VISIBILIDADE */
+#menu-lateral { 
+    position: fixed; 
+    top: 0; 
+    right: -400px; /* Joga bem pra fora da tela */
+    width: 320px; 
+    height: 100%; 
+    background: #000b1a; 
+    z-index: 6000; 
+    transition: transform 0.4s ease-in-out; 
+    padding: 30px; 
+    border-left: 3px solid #00ff99; 
+    visibility: hidden; /* Garante que não seja clicável ou visto quando fechado */
+}
+
+#menu-lateral.active { 
+    transform: translateX(-400px); /* Traz ele de volta */
+    visibility: visible; 
+}
+
+.cat-title { 
+    color: #00ff99; 
+    font-size: 0.75rem; 
+    margin-top: 25px; 
+    letter-spacing: 2px;
+    border-bottom: 1px solid #00ff99; 
+    padding-bottom: 5px;
+}
+
+.btn-layer { 
+    width: 100%; 
+    padding: 15px; 
+    margin-top: 10px; 
+    background: #111; 
+    color: #fff; 
+    border: 1px solid #333; 
+    cursor: pointer; 
+    text-align: left; 
+    border-radius: 5px;
+}
+
+.btn-layer:hover { background: #00ff99; color: #000; }
+
+/* PAINEL FULL SCREEN - CORREÇÃO DE SCROLL E DEGRADÊ */
+#painel-full {
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh;
+    z-index: 9999; 
+    transform: translateY(100%); 
+    transition: 0.5s ease;
+    display: block; /* Mudei para block para facilitar o scroll */
+    padding: 60px 20px; 
+    box-sizing: border-box; 
+    overflow-y: auto; /* ATIVA O SCROLL VERTICAL */
+    -webkit-overflow-scrolling: touch;
+}
+
 #painel-full.active { transform: translateY(0); }
 
 /* Degradê Azul solicitado */
-.clima-view { background: linear-gradient(to bottom, #001a33, #0066ff); }
-.alerta-view { background: #00050a; }
+.clima-view { 
+    background: linear-gradient(180deg, #001a33 0%, #0044cc 50%, #0088ff 100%); 
+}
 
-.temp-val { font-size: 9rem; font-weight: bold; color: #00ff99; }
-.clima-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 700px; }
-.c-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; font-size: 1.2rem; border: 1px solid rgba(0,255,153,0.2); }
+.alerta-view { 
+    background: #000; 
+}
 
-.btn-close-full { position: absolute; top: 20px; right: 20px; background: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+#painel-content {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-/* Busca e Menu Lateral */
-#search-container { position: fixed; top: 20px; left: 20px; z-index: 5000; background: rgba(0,0,0,0.8); padding: 5px; border-radius: 20px; border: 1px solid #00ff99; }
-#input-busca { background: none; border: none; color: white; padding: 5px 15px; outline: none; width: 180px; }
-#menu-lateral { position: fixed; top: 0; right: -320px; width: 300px; height: 100%; background: #000; z-index: 6000; transition: 0.4s; padding: 25px; border-left: 2px solid #00ff99; }
-#menu-lateral.active { right: 0; }
-.btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: #fff; border: 1px solid #333; cursor: pointer; text-align: left; }
-.cat-title { color: #00ff99; font-size: 0.7rem; margin-top: 25px; border-bottom: 1px solid #00ff99; }
+.temp-val { 
+    font-size: clamp(5rem, 15vw, 9rem); 
+    font-weight: bold; 
+    color: #00ff99; 
+    margin: 20px 0;
+}
+
+.clima-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+    gap: 15px; 
+    width: 100%; 
+}
+
+.c-item { 
+    background: rgba(255,255,255,0.1); 
+    padding: 20px; 
+    border-radius: 12px; 
+    font-size: 1.2rem; 
+    border: 1px solid rgba(0,255,153,0.3);
+    backdrop-filter: blur(5px);
+}
+
+.btn-close-full { 
+    position: fixed; /* Fixado para não sumir no scroll */
+    top: 20px; 
+    right: 20px; 
+    background: #ff4444; 
+    color: white;
+    border: none; 
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    font-weight: bold; 
+    z-index: 10000;
+}
+
+/* ÍCONES DO MAPA */
+.map-icon-alerta { 
+    font-size: 30px; 
+    text-shadow: 0 0 10px #000; 
+    cursor: pointer; 
+}
