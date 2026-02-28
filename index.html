@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaser Monitor v3 - Deep Analysis</title>
+    <title>Chaser Monitor v3</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,131 +16,96 @@
 
     <div id="container-controles">
         <button id="btn-menu" onclick="toggleMenu()">
-            <div>-----</div><div>-----</div><div>-----</div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
         </button>
         <button id="btn-ativar-alertas" onclick="renderizarIconesNosMapas()">🔅 ATIVAR ALERTAS ☁️</button>
     </div>
 
     <div id="menu-lateral">
-        <button onclick="toggleMenu()" class="btn-fechar">✕ FECHAR</button>
-        <div class="cat-title">ATMOSFERA (OWM)</div>
+        <button onclick="toggleMenu()" class="btn-fechar">✕</button>
+        <div class="cat-title">ATMOSFERA</div>
         <button class="btn-layer" onclick="aplicarCamada('clouds')">☁️ Nuvens Reais</button>
-        <button class="btn-layer" onclick="aplicarCamada('infra')">🌡️ Infravermelho Realçado</button>
-        <div class="cat-title">RADAR E TERRENO</div>
+        <button class="btn-layer" onclick="aplicarCamada('infra')">🌡️ Infravermelho</button>
+        <div class="cat-title">RADAR</div>
         <button class="btn-layer" onclick="aplicarCamada('tempestades')">⛈️ Radar de Chuva</button>
-        <button class="btn-layer" onclick="aplicarCamada('satelite_base')">🛰️ Satélite Geográfico</button>
+        <button class="btn-layer" onclick="aplicarCamada('satelite_base')">🛰️ Satélite</button>
     </div>
 
     <div id="map"></div>
 
     <div id="painel-full">
         <button class="btn-close-full" onclick="fecharPainel()">✕</button>
-        <div id="painel-content">
-            </div>
+        <div id="painel-content"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // USE SUA API KEY AQUI
         const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f"; 
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-15.79, -47.88], 4);
+        
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-22.12, -51.38], 10);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
         let camadaAtual = 'default';
         let layerAtiva = null;
-        let markersAlertas = [];
 
         function aplicarCamada(tipo) {
             camadaAtual = tipo;
             if(layerAtiva) map.removeLayer(layerAtiva);
             let url = "";
-            
             if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'satelite_base') url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-            
             if(url) layerAtiva = L.tileLayer(url, { opacity: 0.85, zIndex: 100 }).addTo(map);
             toggleMenu();
         }
 
         map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-            const d = await res.json();
+            try {
+                const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
+                const d = await res.json();
+                
+                let extra = `<div class="analise-box"><h2>ANÁLISE DE CAMADA: ${camadaAtual.toUpperCase()}</h2>`;
+                if(camadaAtual === 'clouds') extra += `<p>Direção: ${d.clima.current.wind_deg}° | Altitude: Médio/Alto</p>`;
+                if(camadaAtual === 'tempestades') extra += `<p>Precipitação: ${d.clima.current.rain ? d.clima.current.rain['1h'] : '0.0'} mm/s</p>`;
+                if(camadaAtual === 'infra') extra += `<p>Massa térmica ativa | Vento: ${d.clima.current.wind_speed} km/h</p>`;
+                if(camadaAtual === 'satelite_base') extra += `<p>Terreno: Processando vegetação e relevo...</p>`;
+                extra += `</div>`;
 
-            // LÓGICA DE ANALISE POR CAMADA (O que aparece no scroll)
-            let analiseExtra = "";
-            if(camadaAtual === 'clouds') {
-                analiseExtra = `
-                    <div class="analise-box">
-                        <h2>🛰️ ANÁLISE DE NUVENS</h2>
-                        <p><b>Tipo predominante:</b> ${d.clima.current.clouds > 70 ? 'Cúmulos-nimbos / Estratos' : 'Cirros / Dispersas'}</p>
-                        <p><b>Direção do Fluxo:</b> ${d.clima.current.wind_deg}° para Nordeste</p>
-                        <p><b>Altitude Estimada:</b> ${d.clima.current.clouds > 50 ? 'Baixa/Média (2km - 5km)' : 'Alta (6km+)'}</p>
-                        <p><b>Cobertura:</b> ${d.clima.current.clouds}% do céu ocupado</p>
-                    </div>`;
-            } else if(camadaAtual === 'infra') {
-                analiseExtra = `
-                    <div class="analise-box">
-                        <h2>🌡️ RELATÓRIO INFRAVERMELHO</h2>
-                        <p><b>Intensidade Térmica:</b> ${d.clima.current.temp > 30 ? 'ALTA (Massa Quente)' : 'FRIA (Massa Estável)'}</p>
-                        <p><b>Velocidade da Massa:</b> ${d.clima.current.wind_speed} km/h</p>
-                        <p><b>Direção:</b> Ângulo de ${d.clima.current.wind_deg}°</p>
-                    </div>`;
-            } else if(camadaAtual === 'tempestades') {
-                analiseExtra = `
-                    <div class="analise-box">
-                        <h2>⛈️ DADOS DO RADAR DOPPLER</h2>
-                        <p><b>Precipitação Estimada:</b> ${d.clima.current.rain ? d.clima.current.rain['1h'] : '0.00'} mm/s</p>
-                        <p><b>Risco de Granizo:</b> ${d.clima.current.temp > 25 && d.clima.current.humidity > 80 ? 'MODERADO' : 'BAIXO'}</p>
-                        <p><b>Estado:</b> Núcleo de chuva em deslocamento</p>
-                    </div>`;
-            } else if(camadaAtual === 'satelite_base') {
-                analiseExtra = `
-                    <div class="analise-box">
-                        <h2>🌍 ANÁLISE GEOGRÁFICA</h2>
-                        <p><b>Tipo de Terreno:</b> Urbano / Vegetação Densa</p>
-                        <p><b>Bioma Provável:</b> Mata/Savana Tropical</p>
-                        <p><b>Elevação:</b> Dados de relevo processados via satélite</p>
-                    </div>`;
-            }
-
-            // MONTA O PAINEL (CLIMA NO TOPO + ANALISE EMBAIXO)
-            document.getElementById('painel-content').innerHTML = `
-                <div class="clima-section">
-                    <h1>${d.geo.address.city || "Ponto Geográfico"}</h1>
-                    <div class="temp-val">${Math.round(d.clima.current.temp)}°C</div>
-                    <div class="clima-grid">
-                        <div class="c-item">💧 Umidade: ${d.clima.current.humidity}%</div>
-                        <div class="c-item">🌬️ Vento: ${d.clima.current.wind_speed} km/h</div>
-                        <div class="c-item">🍃 Qualidade Ar: ${d.poluicao.list[0].main.aqi} AQI</div>
-                        <div class="c-item">👁️ Visib.: ${d.clima.current.visibility / 1000}km</div>
-                        <div class="c-item">⏲️ Pressão: ${d.clima.current.pressure}hPa</div>
-                        <div class="c-item">🌇 Sol: ${new Date(d.clima.current.sunset * 1000).toLocaleTimeString()}</div>
+                document.getElementById('painel-content').innerHTML = `
+                    <div class="clima-section">
+                        <h1>${d.geo.address.city || d.geo.address.town || "Ponto Geográfico"}</h1>
+                        <div class="temp-val">${Math.round(d.clima.current.temp)}°C</div>
+                        <div class="clima-grid">
+                            <div class="c-item">💧 Umidade: ${d.clima.current.humidity}%</div>
+                            <div class="c-item">🌬️ Vento: ${d.clima.current.wind_speed} km/h</div>
+                            <div class="c-item">🍃 Ar: ${d.poluicao.list[0].main.aqi} AQI</div>
+                            <div class="c-item">👁️ Visib: ${d.clima.current.visibility / 1000}km</div>
+                            <div class="c-item">⏲️ Pressão: ${d.clima.current.pressure}hPa</div>
+                            <div class="c-item">🌇 Pôr do sol: ${new Date(d.clima.current.sunset * 1000).toLocaleTimeString()}</div>
+                        </div>
                     </div>
-                </div>
-                <div class="separator"></div>
-                ${analiseExtra}
-            `;
-            document.getElementById('painel-full').className = 'clima-view active';
+                    ${extra}
+                `;
+                document.getElementById('painel-full').className = 'clima-view active';
+            } catch (err) { console.error("Erro no clique:", err); }
         });
 
         async function renderizarIconesNosMapas() {
-            markersAlertas.forEach(m => map.removeLayer(m));
             const res = await fetch('/api/alertas');
             const data = await res.json();
-            const mInmet = L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map);
-            mInmet.on('click', () => abrirAlertaFull('INMET', data.inmet));
-            const mNoaa = L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map);
-            mNoaa.on('click', () => abrirAlertaFull('NOAA', data.noaa));
-            markersAlertas.push(mInmet, mNoaa);
-            alert("Sistemas de Alerta Ativados!");
+            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', () => abrirAlerta('INMET', data.inmet));
+            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', () => abrirAlerta('NOAA', data.noaa));
         }
 
-        function abrirAlertaFull(fonte, lista) {
-            let html = `<h1>ALERTAS ${fonte}</h1>`;
-            lista.forEach(i => html += `<div class="analise-box"><h3>${i.title || i.properties.event}</h3><p>${i.description || i.properties.headline}</p></div>`);
-            document.getElementById('painel-content').innerHTML = html;
+        function abrirAlerta(f, l) {
+            let h = `<h1>${f}</h1>`;
+            l.forEach(i => h += `<div class="analise-box"><h3>${i.title || i.properties.event}</h3><p>${i.description || i.properties.headline}</p></div>`);
+            document.getElementById('painel-content').innerHTML = h;
             document.getElementById('painel-full').className = 'alerta-view active';
         }
 
@@ -150,7 +115,7 @@
             const q = document.getElementById('input-busca').value;
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
             const data = await res.json();
-            if(data[0]) map.setView([data[0].lat, data[0].lon], 10);
+            if(data[0]) map.setView([data[0].lat, data[0].lon], 11);
         }
     </script>
 </body>
