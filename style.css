@@ -1,45 +1,48 @@
 body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; }
 
-/* Menu Simplificado ----- */
-#btn-menu { 
-    background: #001a33; border: 2px solid #00ff99; padding: 10px; border-radius: 5px; cursor: pointer;
-    display: flex; flex-direction: column; gap: 4px; align-items: center;
+/* BARRA DE PESQUISA NO TOPO ESQUERDO */
+#search-container { 
+    position: fixed; top: 20px; left: 20px; z-index: 5000; 
+    background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 25px; border: 1px solid #00ff99; display: flex;
 }
-#btn-menu div { width: 25px; height: 2px; background: #00ff99; }
+#input-busca { background: none; border: none; color: white; outline: none; width: 180px; padding: 5px; }
+#search-container button { background: none; border: none; color: #00ff99; cursor: pointer; font-size: 1.2rem; }
 
+/* MENU SÓ AS BARRAS */
 #container-controles { position: fixed; top: 20px; right: 20px; z-index: 5000; display: flex; flex-direction: column; gap: 10px; }
-#btn-ativar-alertas { background: #ffcc00; color: #000; border: 2px solid #000; padding: 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+#btn-menu { 
+    background: #001a33; border: 2px solid #00ff99; padding: 12px; border-radius: 8px; cursor: pointer; 
+    display: flex; flex-direction: column; gap: 5px; width: 50px; align-items: center;
+}
+.bar { width: 30px; height: 3px; background: #00ff99; }
+#btn-ativar-alertas { background: #ffcc00; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-/* Painel com Scroll e Degradê */
+/* MENU LATERAL CORRETO */
+#menu-lateral { 
+    position: fixed; top: 0; right: -350px; width: 300px; height: 100%; 
+    background: #000; z-index: 6000; transition: 0.4s; padding: 25px; border-left: 2px solid #00ff99; 
+}
+#menu-lateral.active { right: 0; }
+.btn-fechar { background: none; border: none; color: #ff4444; font-size: 2rem; cursor: pointer; float: right; }
+.btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: #fff; border: 1px solid #333; cursor: pointer; text-align: left; }
+.cat-title { color: #00ff99; font-size: 0.8rem; margin-top: 30px; border-bottom: 1px solid #00ff99; }
+
+/* PAINEL AZUL COM SCROLL */
 #painel-full {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     z-index: 9999; transform: translateY(100%); transition: 0.5s;
-    overflow-y: auto; display: block; padding-top: 50px;
+    overflow-y: auto; display: block;
 }
 #painel-full.active { transform: translateY(0); }
 .clima-view { background: linear-gradient(to bottom, #001a33, #0066ff); }
 .alerta-view { background: #000; }
 
-.clima-section { padding: 40px; text-align: center; }
+.clima-section { padding: 60px 20px; text-align: center; }
 .temp-val { font-size: 8rem; font-weight: bold; color: #00ff99; }
-
-/* Grid de Informações */
 .clima-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; max-width: 900px; margin: 0 auto; }
 .c-item { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; border: 1px solid rgba(0,255,153,0.3); }
 
-/* Box de Análise que aparece no Scroll */
-.analise-box { 
-    background: rgba(0,0,0,0.4); margin: 40px auto; padding: 30px; width: 85%; 
-    border-radius: 15px; border-left: 5px solid #00ff99; text-align: left;
-}
-.separator { height: 2px; background: rgba(255,255,255,0.2); width: 80%; margin: 50px auto; }
-
+.analise-box { background: rgba(0,0,0,0.5); padding: 30px; width: 80%; margin: 20px auto; border-radius: 15px; border-left: 5px solid #00ff99; }
 .btn-close-full { position: fixed; top: 20px; right: 20px; background: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-weight: bold; z-index: 10001; }
-
-/* Menu Lateral */
-#menu-lateral { position: fixed; top: 0; right: -320px; width: 300px; height: 100%; background: #000; z-index: 6000; transition: 0.4s; padding: 25px; border-left: 2px solid #00ff99; }
-#menu-lateral.active { right: 0; }
-.btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: #fff; border: 1px solid #333; cursor: pointer; text-align: left; }
-.cat-title { color: #00ff99; font-size: 0.7rem; margin-top: 25px; border-bottom: 1px solid #00ff99; }
-.map-icon { font-size: 28px; text-shadow: 0 0 10px #000; }
+.map-icon { font-size: 30px; text-shadow: 0 0 10px #000; cursor: pointer; }
