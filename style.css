@@ -1,13 +1,13 @@
-/* RESET E MAPA */
+/* GERAL */
 body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; position: absolute; }
 
-/* BARRA DE BUSCA */
+/* BUSCA (LUPA) */
 #search-container { 
     position: fixed; top: 15px; left: 15px; z-index: 5000; 
     background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 25px; border: 1px solid #00ff99; display: flex; align-items: center;
 }
-#input-busca { background: none; border: none; color: white; outline: none; width: 150px; padding: 8px; font-size: 16px; }
+#input-busca { background: none; border: none; color: white; outline: none; width: 140px; padding: 8px; font-size: 16px; }
 #search-container button { background: none; border: none; color: #00ff99; cursor: pointer; font-size: 1.2rem; }
 
 /* CONTROLES DIREITOS */
@@ -17,27 +17,27 @@ body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white
     display: flex; flex-direction: column; gap: 4px; width: 45px; align-items: center;
 }
 .bar { width: 25px; height: 3px; background: #00ff99; }
-#btn-ativar-alertas { background: #ffcc00; color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 12px; }
+#btn-ativar-alertas { background: #ffcc00; color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 11px; }
 
-/* PAINEL FULL (MOBILE) */
+/* PAINEL FULL (ESCONDIDO POR PADRÃO) */
 #painel-full {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 10000; transform: translateY(100%); transition: 0.5s ease-out;
+    z-index: 10000; transform: translateY(100%); transition: transform 0.5s cubic-bezier(0, 0, 0.2, 1);
     overflow-y: auto; text-align: center;
 }
-#painel-full.active { transform: translateY(0); }
+#painel-full.active { transform: translateY(0) !important; }
 
 /* CORES DOS PAINÉIS */
 .clima-view { background: linear-gradient(180deg, #001a33 0%, #0066ff 100%); }
 .alerta-view { background: #000000; }
 
-#painel-content { padding: 50px 20px; }
+#painel-content { padding: 60px 20px; }
 .clima-grid { 
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px; 
 }
 .c-item { 
-    background: rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 15px; 
-    border: 1px solid rgba(255, 255, 255, 0.1); font-size: 14px;
+    background: rgba(255, 255, 255, 0.12); padding: 15px; border-radius: 12px; 
+    border: 1px solid rgba(255, 255, 255, 0.1); font-size: 13px;
 }
 .analise-box { 
     background: #111; padding: 20px; margin: 15px 0; border-left: 5px solid #ffcc00; text-align: left; 
@@ -54,5 +54,5 @@ body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white
 }
 #menu-lateral.active { right: 0; }
 .btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: white; border: 1px solid #333; text-align: left; }
-.cat-title { color: #00ff99; font-size: 12px; margin-top: 30px; border-bottom: 1px solid #00ff99; padding-bottom: 5px; }
-.map-icon { font-size: 30px; cursor: pointer; text-align: center; }
+.cat-title { color: #00ff99; font-size: 11px; margin-top: 30px; border-bottom: 1px solid #00ff99; padding-bottom: 5px; text-transform: uppercase; }
+.map-icon { font-size: 30px; cursor: pointer; }
