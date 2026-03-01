@@ -40,95 +40,85 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f"; 
+    const API_KEY_OWM = "SUA_API_KEY_AQUI"; 
 
-        const map = L.map('map', { 
-            zoomControl: false, 
-            attributionControl: false,
-            minZoom: 3,
-            maxZoom: 18
-        }).setView([-22.12, -51.38], 10);
+    const map = L.map('map', { 
+        zoomControl: false, 
+        attributionControl: false,
+        minZoom: 3,
+        maxZoom: 18
+    }).setView([-22.12, -51.38], 10);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let camadaAtual = 'default';
-        let layerAtiva = null;
+    let camadaAtual = 'default';
+    let layerAtiva = null;
 
-        function aplicarCamada(tipo) {
-            camadaAtual = tipo;
-            if(layerAtiva) map.removeLayer(layerAtiva);
-            let url = "";
-            if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            if(tipo === 'satelite_base') url = 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
-            
-            if(url) {
-                layerAtiva = L.tileLayer(url, { 
-                    opacity: 0.8, zIndex: 100, subdomains:['mt0','mt1','mt2','mt3'] 
-                }).addTo(map);
-            }
-            toggleMenu();
+    // --- SUA LÓGICA DE CLIQUE (AGORA INTEGRADA) ---
+    map.on('click', async (e) => {
+        const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+        const data = await res.json();
+        
+        // Dados do clique
+        const cur = data.clima.current;
+        
+        // Lógica extra para as camadas (mm/s, vento, etc) no scroll
+        let infoCamada = "";
+        if(camadaAtual === 'tempestades') {
+            infoCamada = `<div class="analise-box"><h2>⛈️ RADAR</h2><p>Precipitação: ${cur.rain ? cur.rain['1h'] : '0.0'} mm/s</p></div>`;
+        } else if(camadaAtual === 'infra') {
+            infoCamada = `<div class="analise-box"><h2>🌡️ INFRAVERMELHO</h2><p>Vento: ${cur.wind_speed} km/h</p></div>`;
         }
 
-        // CLIQUE QUE ABRE O PAINEL EM QUALQUER LUGAR
-        map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
-            const painel = document.getElementById('painel-full');
-            const content = document.getElementById('painel-content');
+        // Insere no painel
+        document.getElementById('painel-content').innerHTML = `
+            <div class="clima-section">
+                <h1 style="margin:0">${data.geo.address.city || data.geo.address.town || "Localização"}</h1>
+                <div class="temp-val">${Math.round(cur.temp)}°C</div>
+                <div class="clima-grid">
+                    <div class="c-item">💧 Umidade: ${cur.humidity}%</div>
+                    <div class="c-item">🌬️ Vento: ${cur.wind_speed} km/h</div>
+                </div>
+                ${infoCamada}
+            </div>
+        `;
 
-            try {
-                const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-                const d = await res.json();
-                
-                let infoExtra = "";
-                if(camadaAtual === 'tempestades') infoExtra = `<div class="analise-box"><h2>⛈️ PRECIPITAÇÃO</h2><p>${d.clima.current.rain ? d.clima.current.rain['1h'] : '0.0'} mm/s</p></div>`;
-                if(camadaAtual === 'infra') infoExtra = `<div class="analise-box"><h2>🌡️ TÉRMICO</h2><p>Vento: ${d.clima.current.wind_speed} km/h</p></div>`;
+        // ATIVA O PAINEL (O QUE VOCÊ FALOU!)
+        document.getElementById('painel-full').classList.add('active');
+        document.getElementById('painel-full').className = 'clima-view active';
+    });
 
-                content.innerHTML = `
-                    <div class="clima-section">
-                        <h1>${d.geo.address.city || "Ponto Geográfico"}</h1>
-                        <div class="temp-val">${Math.round(d.clima.current.temp)}°C</div>
-                        <div class="clima-grid">
-                            <div class="c-item">💧 Umidade: ${d.clima.current.humidity}%</div>
-                            <div class="c-item">🌬️ Vento: ${d.clima.current.wind_speed} km/h</div>
-                            <div class="c-item">⏲️ Pressão: ${d.clima.current.pressure}hPa</div>
-                        </div>
-                        ${infoExtra}
-                    </div>
-                `;
-                painel.className = 'clima-view active';
-            } catch (err) { console.log("Erro no clique"); }
-        });
-
-        // BUSCA QUE FUNCIONA (MOVE O MAPA)
-        async function buscarLocalizacao() {
-            const q = document.getElementById('input-busca').value;
-            if(!q) return;
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-                const data = await res.json();
-                if(data && data[0]) {
-                    map.setView([data[0].lat, data[0].lon], 12);
-                }
-            } catch(e) { console.log("Erro na busca"); }
+    // --- CORREÇÃO DA BUSCA (PARA A LUPA FUNCIONAR) ---
+    async function buscarLocalizacao() {
+        const q = document.getElementById('input-busca').value;
+        if(!q) return;
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if(data && data[0]) {
+            map.setView([data[0].lat, data[0].lon], 12);
         }
+    }
 
-        document.getElementById('btn-buscar').onclick = buscarLocalizacao;
-        document.getElementById('input-busca').onkeypress = (e) => { if(e.key === 'Enter') buscarLocalizacao(); };
-
-        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
-        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
-
-        async function renderizarIconesNosMapas() {
-            const res = await fetch('/api/alertas');
-            const data = await res.json();
-            L.marker([-15.79, -47.88], {icon: L.divIcon({html:'🔅', className:'map-icon'})}).addTo(map)
-                .on('click', () => {
-                    document.getElementById('painel-content').innerHTML = `<h1>INMET</h1>` + data.inmet.map(i => `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`).join('');
-                    document.getElementById('painel-full').className = 'alerta-view active';
-                });
+    // --- CAMADAS (INCLUINDO SÁTELITE QUE TINHA BUGADO) ---
+    function aplicarCamada(tipo) {
+        camadaAtual = tipo;
+        if(layerAtiva) map.removeLayer(layerAtiva);
+        let url = "";
+        if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
+        if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
+        if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
+        if(tipo === 'satelite_base') url = 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
+        
+        if(url) {
+            layerAtiva = L.tileLayer(url, { 
+                opacity: 0.8, zIndex: 100, subdomains:['mt0','mt1','mt2','mt3'] 
+            }).addTo(map);
         }
-    </script>
+        toggleMenu();
+    }
+
+    function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
+    function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+   </script>
 </body>
 </html>
