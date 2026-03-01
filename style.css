@@ -1,52 +1,35 @@
 body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; position: absolute; }
 
-/* BARRA DE PESQUISA */
-#search-container { 
-    position: fixed; top: 20px; left: 20px; z-index: 5000; 
-    background: rgba(0,0,0,0.85); padding: 5px 15px; border-radius: 25px; border: 1px solid #00ff99; display: flex; align-items: center;
-}
+/* BUSCA */
+#search-container { position: fixed; top: 20px; left: 20px; z-index: 5000; background: rgba(0,0,0,0.85); padding: 5px 15px; border-radius: 25px; border: 1px solid #00ff99; display: flex; align-items: center; }
 #input-busca { background: none; border: none; color: white; outline: none; width: 180px; padding: 8px; font-size: 16px; }
-#search-container button { background: none; border: none; color: #00ff99; cursor: pointer; font-size: 1.2rem; }
 
-/* CONTROLES DIREITOS */
+/* CONTROLES */
 #container-controles { position: fixed; top: 20px; right: 20px; z-index: 5000; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-#btn-menu { 
-    background: #001a33; border: 2px solid #00ff99; padding: 12px; border-radius: 8px; cursor: pointer; 
-    display: flex; flex-direction: column; gap: 5px; width: 55px; align-items: center;
-}
+#btn-menu { background: #001a33; border: 2px solid #00ff99; padding: 12px; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; width: 55px; align-items: center; }
 .bar { width: 30px; height: 3px; background: #00ff99; }
 #btn-ativar-alertas { background: #ffcc00; color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
 /* MENU LATERAL */
-#menu-lateral { 
-    position: fixed; top: 0; right: -350px; width: 300px; height: 100%; 
-    background: #000; z-index: 6000; transition: 0.4s; padding: 25px; border-left: 2px solid #00ff99; 
-}
+#menu-lateral { position: fixed; top: 0; right: -350px; width: 300px; height: 100%; background: #000; z-index: 6000; transition: 0.4s; padding: 25px; border-left: 2px solid #00ff99; }
 #menu-lateral.active { right: 0; }
-.btn-fechar { background: none; border: none; color: #ff4444; font-size: 2rem; cursor: pointer; float: right; }
 .btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: #fff; border: 1px solid #333; cursor: pointer; text-align: left; }
-.cat-title { color: #00ff99; font-size: 0.8rem; margin-top: 30px; border-bottom: 1px solid #00ff99; padding-bottom: 5px; }
 
-/* PAINEL FULL (AZUL OU PRETO) */
-#painel-full {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 10000; transform: translateY(100%); transition: 0.4s;
-    overflow-y: auto; display: block !important;
+/* OS DOIS PAINÉIS */
+#painel-full, #painel-clima { 
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+    z-index: 10000; transform: translateY(100%); transition: 0.4s; overflow-y: auto; 
 }
-#painel-full.active { transform: translateY(0) !important; }
-.clima-view { background: linear-gradient(to bottom, #001a33, #0066ff); }
-.alerta-view { background: #000; }
+#painel-full.active, #painel-clima.active { transform: translateY(0) !important; }
 
-#painel-content { padding: 60px 20px; text-align: center; max-width: 800px; margin: 0 auto; }
-.temp-val { font-size: 8rem; font-weight: bold; color: #00ff99; }
-.clima-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
-.c-item { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; border: 1px solid rgba(0,255,153,0.3); }
+/* CORES DIFERENTES */
+#painel-clima { background: linear-gradient(to bottom, #001a33, #0066ff); } /* AZUL PARA CLIMA */
+#painel-full { background: #000; } /* PRETO PARA ALERTAS */
 
-/* BOX DE ANÁLISE DAS CAMADAS NO SCROLL */
-.analise-box { 
-    background: rgba(0,0,0,0.6); padding: 25px; border-radius: 15px; border-left: 5px solid #00ff99; 
-    text-align: left; margin-top: 40px; 
-}
-.btn-close-full { position: fixed; top: 20px; right: 20px; background: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-weight: bold; z-index: 10001; }
-.map-icon { font-size: 30px; cursor: pointer; }
+.painel-content { padding: 60px 20px; text-align: center; }
+.temp-txt { font-size: 8rem; font-weight: bold; color: #fff; }
+.grid-clima { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-top: 30px; }
+.item-c { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; border: 1px solid rgba(0,255,153,0.3); }
+.btn-close { position: fixed; top: 20px; right: 20px; background: #fff; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; z-index: 10001; }
+.map-icon { font-size: 35px; cursor: pointer; }
