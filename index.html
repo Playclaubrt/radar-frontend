@@ -42,11 +42,11 @@
     <script>
         const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f"; 
 
-        // Configuração do Mapa com travas para não bugar
+        // CONFIGURAÇÃO DO MAPA
         const map = L.map('map', { 
             zoomControl: false, 
             attributionControl: false,
-            doubleClickZoom: false, // Impede zoom ao clicar rápido
+            doubleClickZoom: false, // Importante para o clique não bugar
             minZoom: 3,
             maxZoom: 18
         }).setView([-22.12, -51.38], 10);
@@ -56,7 +56,7 @@
         let camadaAtual = 'default';
         let layerAtiva = null;
 
-        // Função para os Emojis do Clima
+        // Emojis dinâmicos
         function getClimaEmoji(code) {
             if (code >= 200 && code < 300) return "⛈️";
             if (code >= 300 && code < 600) return "🌧️";
@@ -65,7 +65,7 @@
             return "☁️";
         }
 
-        // --- BUSCA (LUPA) ---
+        // --- LUPA (BUSCA) ---
         async function buscarLocalizacao() {
             const q = document.getElementById('input-busca').value;
             if(!q) return;
@@ -79,29 +79,25 @@
             const res = await fetch('/api/alertas');
             const data = await res.json();
             
-            // 🔅 INMET (Brasil)
+            // Ícone Brasil
             L.marker([-15.79, -47.88], {icon: L.divIcon({html:'🔅', className:'map-icon'})}).addTo(map).on('click', () => {
                 document.getElementById('painel-content').innerHTML = `<h1>🔅 INMET</h1>` + data.inmet.map(i => `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`).join('');
                 document.getElementById('painel-full').className = 'alerta-view active';
             });
 
-            // ☁️ NOAA (USA)
+            // Ícone USA
             L.marker([38.89, -77.03], {icon: L.divIcon({html:'☁️', className:'map-icon'})}).addTo(map).on('click', () => {
                 document.getElementById('painel-content').innerHTML = `<h1>☁️ NOAA</h1>` + data.noaa.map(i => `<div class="analise-box"><h3>${i.properties.event}</h3><p>${i.properties.headline}</p></div>`).join('');
                 document.getElementById('painel-full').className = 'alerta-view active';
             });
         }
 
-        // --- CLIQUE NO MAPA (DADOS DO PAINEL FULL) ---
-        map.on('click', async (e) => { // 1. Ouve o clique no mapa
-            // 2. Faz o pedido ao seu Server.js enviando a Latitude e Longitude de onde você clicou
+        // --- CLIQUE NO MAPA (O SEU CÓDIGO INTEGRADO) ---
+        map.on('click', async (e) => { 
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const data = await res.json();
-            
             const cur = data.clima.current;
-            const dai = data.clima.daily;
 
-            // 3. Insere as informações dentro da div "painel-content"
             document.getElementById('painel-content').innerHTML = `
                 <div class="clima-section">
                     <h1 style="margin:0">${data.geo.address.city || data.geo.address.town || "Localização"}</h1>
@@ -109,21 +105,23 @@
                     <div class="temp-txt" style="font-size:70px; font-weight:bold">${Math.round(cur.temp)}°C</div>
                     
                     <div class="clima-grid">
-                        <div class="c-item"><b>Visibilidade</b><br>${cur.visibility / 1000}km</div>
-                        <div class="c-item"><b>Umidade</b><br>${cur.humidity}%</div>
-                        <div class="c-item"><b>Ventos</b><br>${cur.wind_speed}km/h</div>
-                        <div class="c-item"><b>Ar (AQI)</b><br>${data.poluicao.list[0].main.aqi}</div>
-                        <div class="c-item"><b>Pressão</b><br>${cur.pressure}hPa</div>
-                        <div class="c-item"><b>Pôr do sol</b><br>${new Date(cur.sunset * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div class="c-item"><b>👁️ Visibilidade</b><br>${cur.visibility / 1000}km</div>
+                        <div class="c-item"><b>🌡️ Graus</b><br>${Math.round(cur.temp)}°C</div>
+                        <div class="c-item"><b>🌇 Pôr do sol</b><br>${new Date(cur.sunset * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div class="c-item"><b>🌅 Nascer do sol</b><br>${new Date(cur.sunrise * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div class="c-item"><b>🍃 Ar (AQI)</b><br>${data.poluicao.list[0].main.aqi}</div>
+                        <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity}%</div>
+                        <div class="c-item"><b>🌬️ Ventos</b><br>${cur.wind_speed}km/h</div>
+                        <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure}hPa</div>
                     </div>
                 </div>
             `;
 
-            // 4. ATIVA O PAINEL (Muda a posição dele no CSS de 100% para 0)
-            document.getElementById('painel-full').className = 'clima-view active';
+            // ATIVA O PAINEL CLIMA (AZUL)
+            const painel = document.getElementById('painel-full');
+            painel.className = 'clima-view active';
         });
 
-        // Funções de Interface
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
@@ -134,10 +132,7 @@
             if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'satelite_base') url = 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
-            
-            if(url) {
-                layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
-            }
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
             toggleMenu();
         }
     </script>
