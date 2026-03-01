@@ -11,7 +11,7 @@
 
     <div id="search-container">
         <input type="text" id="input-busca" placeholder="Pesquisar cidade...">
-        <button onclick="buscarLocalizacao()">🔍</button>
+        <button id="btn-buscar">🔍</button>
     </div>
 
     <div id="container-controles">
@@ -34,7 +34,7 @@
     <div id="map"></div>
 
     <div id="painel-full">
-        <button class="btn-close-full" onclick="fecharPainel()" style="position:fixed; top:20px; right:20px; z-index:100000;">✕</button>
+        <button class="btn-close-full" onclick="fecharPainel()">✕</button>
         <div id="painel-content"></div>
     </div>
 
@@ -53,105 +53,81 @@
 
         let camadaAtual = 'default';
         let layerAtiva = null;
-        let markersAlertas = [];
 
         function aplicarCamada(tipo) {
             camadaAtual = tipo;
             if(layerAtiva) map.removeLayer(layerAtiva);
-            
             let url = "";
             if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            // MUDADO PARA GOOGLE SATELLITE (MAIS CONFIÁVEL)
             if(tipo === 'satelite_base') url = 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
-
+            
             if(url) {
                 layerAtiva = L.tileLayer(url, { 
-                    opacity: 0.85, 
-                    zIndex: 100,
-                    subdomains:['mt0','mt1','mt2','mt3'] 
+                    opacity: 0.8, zIndex: 100, subdomains:['mt0','mt1','mt2','mt3'] 
                 }).addTo(map);
             }
             toggleMenu();
         }
 
-        // CLIQUE NO MAPA CORRIGIDO
+        // CLIQUE QUE ABRE O PAINEL EM QUALQUER LUGAR
         map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            
+            const painel = document.getElementById('painel-full');
+            const content = document.getElementById('painel-content');
+
             try {
                 const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
                 const d = await res.json();
                 
-                if(!d.clima) return;
-
-                const painel = document.getElementById('painel-full');
-                const content = document.getElementById('painel-content');
-
-                let analise = `<div class="analise-box"><h2>ANÁLISE DE CAMADA: ${camadaAtual.toUpperCase()}</h2>`;
-                if(camadaAtual === 'tempestades') analise += `<p>Precipitação: ${d.clima.current.rain ? d.clima.current.rain['1h'] : '0.0'} mm/s</p>`;
-                if(camadaAtual === 'infra') analise += `<p>Vento: ${d.clima.current.wind_speed} km/h | Direção: ${d.clima.current.wind_deg}°</p>`;
-                analise += `</div>`;
+                let infoExtra = "";
+                if(camadaAtual === 'tempestades') infoExtra = `<div class="analise-box"><h2>⛈️ PRECIPITAÇÃO</h2><p>${d.clima.current.rain ? d.clima.current.rain['1h'] : '0.0'} mm/s</p></div>`;
+                if(camadaAtual === 'infra') infoExtra = `<div class="analise-box"><h2>🌡️ TÉRMICO</h2><p>Vento: ${d.clima.current.wind_speed} km/h</p></div>`;
 
                 content.innerHTML = `
-                    <div class="clima-section" style="padding: 60px 20px; text-align: center;">
-                        <h1>${d.geo.address.city || "Localização"}</h1>
-                        <div class="temp-val" style="font-size: 8rem; font-weight: bold; color: #00ff99;">${Math.round(d.clima.current.temp)}°C</div>
+                    <div class="clima-section">
+                        <h1>${d.geo.address.city || "Ponto Geográfico"}</h1>
+                        <div class="temp-val">${Math.round(d.clima.current.temp)}°C</div>
                         <div class="clima-grid">
                             <div class="c-item">💧 Umidade: ${d.clima.current.humidity}%</div>
                             <div class="c-item">🌬️ Vento: ${d.clima.current.wind_speed} km/h</div>
-                            <div class="c-item">⏲️ Pressão: ${d.clima.current.pressure} hPa</div>
-                            <div class="c-item">🌅 Sol: ${new Date(d.clima.current.sunset * 1000).toLocaleTimeString()}</div>
+                            <div class="c-item">⏲️ Pressão: ${d.clima.current.pressure}hPa</div>
                         </div>
-                        ${analise}
+                        ${infoExtra}
                     </div>
                 `;
                 painel.className = 'clima-view active';
-            } catch (err) { console.log("Erro silencioso no clique"); }
+            } catch (err) { console.log("Erro no clique"); }
         });
 
-        async function renderizarIconesNosMapas() {
+        // BUSCA QUE FUNCIONA (MOVE O MAPA)
+        async function buscarLocalizacao() {
+            const q = document.getElementById('input-busca').value;
+            if(!q) return;
             try {
-                const res = await fetch('/api/alertas');
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
                 const data = await res.json();
-                
-                markersAlertas.forEach(m => map.removeLayer(m));
-
-                const icon1 = L.divIcon({html:'🔅', className:'map-icon', iconSize:[40,40]});
-                const mInmet = L.marker([-15.79, -47.88], {icon: icon1}).addTo(map);
-                mInmet.on('click', () => {
-                    abrirAlertaRapido('INMET BRASIL', data.inmet);
-                });
-
-                const icon2 = L.divIcon({html:'☁️', className:'map-icon', iconSize:[40,40]});
-                const mNoaa = L.marker([38.89, -77.03], {icon: icon2}).addTo(map);
-                mNoaa.on('click', () => {
-                    abrirAlertaRapido('NOAA USA', data.noaa);
-                });
-
-                markersAlertas.push(mInmet, mNoaa);
-            } catch(e) {}
+                if(data && data[0]) {
+                    map.setView([data[0].lat, data[0].lon], 12);
+                }
+            } catch(e) { console.log("Erro na busca"); }
         }
 
-        function abrirAlertaRapido(titulo, lista) {
-            const content = document.getElementById('painel-content');
-            let h = `<h1>${titulo}</h1>`;
-            lista.forEach(i => {
-                h += `<div class="analise-box"><h3>${i.title || i.properties.event}</h3><p>${i.description || i.properties.headline}</p></div>`;
-            });
-            content.innerHTML = h;
-            document.getElementById('painel-full').className = 'alerta-view active';
-        }
+        document.getElementById('btn-buscar').onclick = buscarLocalizacao;
+        document.getElementById('input-busca').onkeypress = (e) => { if(e.key === 'Enter') buscarLocalizacao(); };
 
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
-        async function buscarLocalizacao() {
-            const q = document.getElementById('input-busca').value;
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+        async function renderizarIconesNosMapas() {
+            const res = await fetch('/api/alertas');
             const data = await res.json();
-            if(data[0]) map.setView([data[0].lat, data[0].lon], 11);
+            L.marker([-15.79, -47.88], {icon: L.divIcon({html:'🔅', className:'map-icon'})}).addTo(map)
+                .on('click', () => {
+                    document.getElementById('painel-content').innerHTML = `<h1>INMET</h1>` + data.inmet.map(i => `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`).join('');
+                    document.getElementById('painel-full').className = 'alerta-view active';
+                });
         }
     </script>
 </body>
