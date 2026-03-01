@@ -42,30 +42,63 @@
     <script>
         const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f"; 
 
-        // CONFIGURAÇÃO DO MAPA
         const map = L.map('map', { 
             zoomControl: false, 
             attributionControl: false,
-            doubleClickZoom: false, // Importante para o clique não bugar
+            doubleClickZoom: false,
+            tap: false, // Melhora o clique em smartphones
             minZoom: 3,
             maxZoom: 18
         }).setView([-22.12, -51.38], 10);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let camadaAtual = 'default';
         let layerAtiva = null;
 
-        // Emojis dinâmicos
         function getClimaEmoji(code) {
             if (code >= 200 && code < 300) return "⛈️";
             if (code >= 300 && code < 600) return "🌧️";
-            if (code >= 600 && code < 700) return "❄️";
-            if (code === 800) return "☀️";
+            if (code >= 800) return "☀️";
             return "☁️";
         }
 
-        // --- LUPA (BUSCA) ---
+        // --- LÓGICA DO CLIQUE (ANALISADA E CORRIGIDA) ---
+        map.on('click', async (e) => {
+            try {
+                const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                const data = await res.json();
+                
+                const cur = data.clima.current;
+                const poluicao = data.poluicao.list[0].main.aqi;
+
+                document.getElementById('painel-content').innerHTML = `
+                    <div class="clima-section">
+                        <h1 style="margin:0">${data.geo.address.city || data.geo.address.town || "Localização"}</h1>
+                        <div style="font-size:90px; margin:10px 0">${getClimaEmoji(cur.weather[0].id)}</div>
+                        <div class="temp-txt" style="font-size:70px; font-weight:bold">${Math.round(cur.temp)}°C</div>
+                        
+                        <div class="clima-grid">
+                            <div class="c-item"><b>👁️ Visibilidade</b><br>${cur.visibility / 1000}km</div>
+                            <div class="c-item"><b>🌡️ Graus</b><br>${Math.round(cur.temp)}°C</div>
+                            <div class="c-item"><b>🌇 Pôr do sol</b><br>${new Date(cur.sunset * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                            <div class="c-item"><b>🌅 Nascer</b><br>${new Date(cur.sunrise * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                            <div class="c-item"><b>🍃 Ar (AQI)</b><br>${poluicao}</div>
+                            <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity}%</div>
+                            <div class="c-item"><b>🌬️ Ventos</b><br>${cur.wind_speed}km/h</div>
+                            <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure}hPa</div>
+                        </div>
+                    </div>
+                `;
+
+                // Força a subida do painel
+                const painel = document.getElementById('painel-full');
+                painel.className = 'clima-view active';
+            } catch (err) {
+                console.error("Erro ao processar clique:", err);
+            }
+        });
+
+        // --- BUSCA (LUPA) ---
         async function buscarLocalizacao() {
             const q = document.getElementById('input-busca').value;
             if(!q) return;
@@ -74,53 +107,18 @@
             if(data && data[0]) map.setView([data[0].lat, data[0].lon], 11);
         }
 
-        // --- ALERTAS (INMET E NOAA) ---
+        // --- ALERTAS ---
         async function renderizarIconesNosMapas() {
             const res = await fetch('/api/alertas');
             const data = await res.json();
             
-            // Ícone Brasil
-            L.marker([-15.79, -47.88], {icon: L.divIcon({html:'🔅', className:'map-icon'})}).addTo(map).on('click', () => {
+            // INMET
+            L.marker([-15.79, -47.88], {icon: L.divIcon({html:'🔅', className:'map-icon'})}).addTo(map).on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev);
                 document.getElementById('painel-content').innerHTML = `<h1>🔅 INMET</h1>` + data.inmet.map(i => `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`).join('');
                 document.getElementById('painel-full').className = 'alerta-view active';
             });
-
-            // Ícone USA
-            L.marker([38.89, -77.03], {icon: L.divIcon({html:'☁️', className:'map-icon'})}).addTo(map).on('click', () => {
-                document.getElementById('painel-content').innerHTML = `<h1>☁️ NOAA</h1>` + data.noaa.map(i => `<div class="analise-box"><h3>${i.properties.event}</h3><p>${i.properties.headline}</p></div>`).join('');
-                document.getElementById('painel-full').className = 'alerta-view active';
-            });
         }
-
-        // --- CLIQUE NO MAPA (O SEU CÓDIGO INTEGRADO) ---
-        map.on('click', async (e) => { 
-            const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
-            const data = await res.json();
-            const cur = data.clima.current;
-
-            document.getElementById('painel-content').innerHTML = `
-                <div class="clima-section">
-                    <h1 style="margin:0">${data.geo.address.city || data.geo.address.town || "Localização"}</h1>
-                    <div style="font-size:90px; margin:10px 0">${getClimaEmoji(cur.weather[0].id)}</div>
-                    <div class="temp-txt" style="font-size:70px; font-weight:bold">${Math.round(cur.temp)}°C</div>
-                    
-                    <div class="clima-grid">
-                        <div class="c-item"><b>👁️ Visibilidade</b><br>${cur.visibility / 1000}km</div>
-                        <div class="c-item"><b>🌡️ Graus</b><br>${Math.round(cur.temp)}°C</div>
-                        <div class="c-item"><b>🌇 Pôr do sol</b><br>${new Date(cur.sunset * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                        <div class="c-item"><b>🌅 Nascer do sol</b><br>${new Date(cur.sunrise * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                        <div class="c-item"><b>🍃 Ar (AQI)</b><br>${data.poluicao.list[0].main.aqi}</div>
-                        <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity}%</div>
-                        <div class="c-item"><b>🌬️ Ventos</b><br>${cur.wind_speed}km/h</div>
-                        <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure}hPa</div>
-                    </div>
-                </div>
-            `;
-
-            // ATIVA O PAINEL CLIMA (AZUL)
-            const painel = document.getElementById('painel-full');
-            painel.className = 'clima-view active';
-        });
 
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
