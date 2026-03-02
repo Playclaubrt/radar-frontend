@@ -1,28 +1,120 @@
-body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
+/* --- CONFIGURAÇÕES GERAIS --- */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body, html { 
+    margin: 0; padding: 0; width: 100%; height: 100%; 
+    background: #000; color: white; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+    overflow: hidden; 
+}
+
 #map { height: 100vh; width: 100vw; position: absolute; z-index: 1; }
 
-/* PAINEL FULL */
+/* --- BARRA DE BUSCA (LUPA) --- */
+#search-container { 
+    position: fixed; top: 20px; left: 15px; z-index: 5000; 
+    background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px);
+    padding: 5px 15px; border-radius: 30px; border: 1px solid rgba(0, 255, 153, 0.5); 
+    display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+#input-busca { 
+    background: none; border: none; color: white; outline: none; 
+    width: 160px; padding: 10px; font-size: 16px; 
+}
+#search-container button { 
+    background: none; border: none; color: #00ff99; cursor: pointer; font-size: 1.3rem; 
+}
+
+/* --- CONTROLES DA DIREITA --- */
+#container-controles { 
+    position: fixed; top: 20px; right: 15px; z-index: 5000; 
+    display: flex; flex-direction: column; align-items: flex-end; gap: 12px; 
+}
+#btn-menu { 
+    background: #001a33; border: 2px solid #00ff99; padding: 12px; 
+    border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; 
+}
+.bar { width: 28px; height: 3px; background: #00ff99; border-radius: 2px; }
+#btn-ativar-alertas { 
+    background: #ffcc00; color: #000; border: none; padding: 12px 18px; 
+    border-radius: 12px; font-weight: bold; font-size: 13px; text-transform: uppercase;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* --- PAINEL FULL (O QUE VOCÊ FALOU!) --- */
 #painel-full {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 10000; transform: translateY(100%); transition: transform 0.4s ease-out;
-    overflow-y: auto; color: white;
+    z-index: 99999; transform: translateY(100%); 
+    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    overflow-y: auto; display: block !important;
 }
+
+/* CLASSES DE ATIVAÇÃO */
 #painel-full.active { transform: translateY(0) !important; }
 
-.clima-view { background: linear-gradient(180deg, #001a33 0%, #0066ff 100%); }
-.alerta-view { background: #000; }
+/* ESTILO CLIMA (AZUL) */
+.clima-view { 
+    background: linear-gradient(180deg, #001a33 0%, #004d99 50%, #0066ff 100%); 
+}
 
-.clima-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; }
-.c-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; text-align: center; }
+/* ESTILO ALERTAS (PRETO) */
+.alerta-view { 
+    background: #000000; 
+}
 
-/* DEMAIS ESTILOS */
-#search-container { position: fixed; top: 15px; left: 15px; z-index: 5000; background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 25px; border: 1px solid #00ff99; display: flex; align-items: center; }
-#input-busca { background: none; border: none; color: white; outline: none; width: 140px; padding: 8px; }
-#container-controles { position: fixed; top: 15px; right: 15px; z-index: 5000; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-#btn-menu { background: #001a33; border: 2px solid #00ff99; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
-.bar { width: 25px; height: 3px; background: #00ff99; }
-.btn-close-full { position: absolute; top: 20px; right: 20px; background: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-weight: bold; cursor: pointer; }
-#menu-lateral { position: fixed; top: 0; right: -320px; width: 280px; height: 100%; background: #000; z-index: 6000; transition: 0.4s; padding: 20px; border-left: 2px solid #00ff99; }
+/* --- CONTEÚDO DO PAINEL --- */
+#painel-content { padding: 80px 20px 40px 20px; text-align: center; }
+
+.clima-section h1 { font-size: 2rem; margin-bottom: 5px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+/* GRID DE SMARTPHONE (2 COLUNAS) */
+.clima-grid { 
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 30px; 
+}
+.c-item { 
+    background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(5px);
+    padding: 18px 10px; border-radius: 18px; 
+    border: 1px solid rgba(255, 255, 255, 0.15); 
+    font-size: 14px; color: #e0e0e0;
+}
+.c-item b { color: #fff; display: block; margin-bottom: 5px; font-size: 12px; text-transform: uppercase; opacity: 0.8; }
+
+/* BOX DE ALERTA (INMET/NOAA) */
+.analise-box { 
+    background: #1a1a1a; padding: 20px; margin: 20px 0; border-radius: 15px;
+    border-left: 6px solid #ffcc00; text-align: left; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+.analise-box h3 { margin: 0 0 10px 0; color: #ffcc00; }
+
+/* BOTÃO FECHAR */
+.btn-close-full { 
+    position: fixed; top: 20px; right: 20px; 
+    background: white; color: black; border: none; 
+    width: 45px; height: 45px; border-radius: 50%; 
+    font-size: 20px; font-weight: bold; cursor: pointer; 
+    z-index: 100001; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+}
+
+/* --- MENU LATERAL --- */
+#menu-lateral { 
+    position: fixed; top: 0; right: -320px; width: 280px; height: 100%; 
+    background: #000b1a; z-index: 6000; transition: 0.4s; 
+    padding: 30px 20px; border-left: 2px solid #00ff99; 
+}
 #menu-lateral.active { right: 0; }
-.btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: white; border: 1px solid #333; text-align: left; }
-.map-icon { font-size: 30px; cursor: pointer; }
+.btn-layer { 
+    width: 100%; padding: 15px; margin-top: 12px; border-radius: 10px;
+    background: #111; color: white; border: 1px solid #333; 
+    text-align: left; font-size: 15px; cursor: pointer; 
+}
+.cat-title { color: #00ff99; font-size: 11px; margin-top: 30px; letter-spacing: 1px; border-bottom: 1px solid #00ff99; padding-bottom: 5px; text-transform: uppercase; }
+
+/* ÍCONES NO MAPA */
+.map-icon { 
+    font-size: 32px; filter: drop-shadow(0 0 5px rgba(0,0,0,1)); 
+    cursor: pointer; animation: pulse 2s infinite; 
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
