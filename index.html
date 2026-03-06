@@ -22,7 +22,7 @@
     </div>
 
     <div id="menu-lateral">
-        <button onclick="toggleMenu()" style="color:white; background:none; border:none; font-size:20px;">✕</button>
+        <button onclick="toggleMenu()" style="background:none; border:none; color:#fff; font-size:30px; cursor:pointer;">✕</button>
         <div class="cat-title">ATMOSFERA</div>
         <button class="btn-layer" onclick="aplicarCamada('clouds')">☁️ Nuvens Reais</button>
         <button class="btn-layer" onclick="aplicarCamada('infra')">🌡️ Infravermelho</button>
@@ -42,7 +42,12 @@
     <script>
         const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f"; 
         
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-22.12, -51.38], 10);
+        const map = L.map('map', { 
+            zoomControl: false, 
+            attributionControl: false,
+            doubleClickZoom: false 
+        }).setView([-22.12, -51.38], 10);
+
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
         let camadaAtual = 'default';
@@ -55,63 +60,71 @@
             if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            if(tipo === 'satelite_base') url = 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
-            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.85, zIndex: 100, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
+            if(tipo === 'satelite_base') url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.85, zIndex: 100 }).addTo(map);
             toggleMenu();
         }
 
-        // --- CLIQUE NO MAPA ---
         map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
-            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-            const d = await res.json();
+            const painel = document.getElementById('painel-full');
             
-            const cur = d.clima.current;
+            try {
+                const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
+                const d = await res.json();
+                
+                let camadaInfo = "";
+                if(camadaAtual === 'tempestades') {
+                    camadaInfo = `<div class="analise-box"><h2>⛈️ RADAR</h2><p>Precipitação: ${d.clima.current.rain ? d.clima.current.rain['1h'] : '0.0'} mm/h</p></div>`;
+                } else if(camadaAtual === 'clouds') {
+                    camadaInfo = `<div class="analise-box"><h2>☁️ NUVENS</h2><p>Cobertura: ${d.clima.current.clouds}%</p></div>`;
+                }
 
-            document.getElementById('painel-content').innerHTML = `
-                <div class="clima-section">
-                    <h1>${d.geo.address.city || d.geo.address.town || "Localização"}</h1>
-                    <div class="temp-val">${Math.round(cur.temp)}°C</div>
-                    <div class="clima-grid">
-                        <div class="c-item">💧 Umidade: ${cur.humidity}%</div>
-                        <div class="c-item">🌬️ Ventos: ${cur.wind_speed} km/h</div>
-                        <div class="c-item">🍃 Ar: ${d.poluicao.list[0].main.aqi} AQI</div>
-                        <div class="c-item">👁️ Visib: ${cur.visibility / 1000}km</div>
-                        <div class="c-item">⏲️ Pressão: ${cur.pressure}hPa</div>
-                        <div class="c-item">🌇 Pôr do sol: ${new Date(cur.sunset * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                        <div class="c-item">🌅 Nascer: ${new Date(cur.sunrise * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                document.getElementById('painel-content').innerHTML = `
+                    <div class="clima-section">
+                        <h1>${d.geo.address.city || d.geo.address.town || "Localização"}</h1>
+                        <div class="temp-val">${Math.round(d.clima.current.temp)}°C</div>
+                        <div class="clima-grid">
+                            <div class="c-item">💧 Umidade: ${d.clima.current.humidity}%</div>
+                            <div class="c-item">🌬️ Vento: ${d.clima.current.wind_speed} km/h</div>
+                            <div class="c-item">🍃 Ar: ${d.poluicao.list[0].main.aqi} AQI</div>
+                            <div class="c-item">👁️ Visib: ${d.clima.current.visibility / 1000}km</div>
+                            <div class="c-item">⏲️ Pressão: ${d.clima.current.pressure}hPa</div>
+                            <div class="c-item">🌅 Nascer: ${new Date(d.clima.current.sunrise * 1000).toLocaleTimeString()}</div>
+                            <div class="c-item">🌇 Pôr do sol: ${new Date(d.clima.current.sunset * 1000).toLocaleTimeString()}</div>
+                        </div>
+                        ${camadaInfo}
                     </div>
-                </div>
-            `;
-            document.getElementById('painel-full').className = 'clima-view active';
+                `;
+                painel.className = 'clima-view active';
+            } catch (err) {}
         });
 
-        // --- ALERTAS ---
         async function renderizarIconesNosMapas() {
             const res = await fetch('/api/alertas');
             const data = await res.json();
 
-            // INMET 🔅
-            const mInmet = L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map);
-            mInmet.on('click', () => {
-                let h = `<h1>🔅 INMET BRASIL</h1>`;
-                data.inmet.forEach(i => h += `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`);
-                document.getElementById('painel-content').innerHTML = h;
-                document.getElementById('painel-full').className = 'alerta-view active';
-            });
+            // INMET 🔅 (Brasília)
+            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map)
+            .on('click', (e) => { L.DomEvent.stopPropagation(e); abrirAlerta('🔅 INMET BRASIL', data.inmet); });
 
-            // NOAA ☁️
-            const mNoaa = L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map);
-            mNoaa.on('click', () => {
-                let h = `<h1>☁️ NOAA USA</h1>`;
-                data.noaa.forEach(i => h += `<div class="analise-box"><h3>${i.properties.event}</h3><p>${i.properties.headline}</p></div>`);
-                document.getElementById('painel-content').innerHTML = h;
-                document.getElementById('painel-full').className = 'alerta-view active';
+            // NOAA ☁️ (Washington)
+            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map)
+            .on('click', (e) => { L.DomEvent.stopPropagation(e); abrirAlerta('☁️ NOAA USA', data.noaa); });
+        }
+
+        function abrirAlerta(f, l) {
+            let h = `<h1>${f}</h1>`;
+            l.forEach(i => {
+                h += `<div class="analise-box"><h3>${i.title || i.properties.event}</h3><p>${i.description || i.properties.headline}</p></div>`;
             });
+            document.getElementById('painel-content').innerHTML = h;
+            document.getElementById('painel-full').className = 'alerta-view active';
         }
 
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        
         async function buscarLocalizacao() {
             const q = document.getElementById('input-busca').value;
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
