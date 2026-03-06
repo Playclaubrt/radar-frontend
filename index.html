@@ -10,19 +10,17 @@
 <body>
 
     <div id="search-container">
-        <input type="text" id="input-busca" placeholder="Pesquisar cidade...">
+        <input type="text" id="input-busca" placeholder="Buscar cidade...">
         <button onclick="buscarLocalizacao()">🔍</button>
     </div>
 
     <div id="container-controles">
-        <button id="btn-menu" onclick="toggleMenu()">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        </button>
+        <button id="btn-menu" onclick="toggleMenu()"><div class="bar"></div><div class="bar"></div><div class="bar"></div></button>
         <button id="btn-ativar-alertas" onclick="renderizarIconesNosMapas()">🔅 ALERTAS ☁️</button>
     </div>
 
     <div id="menu-lateral">
-        <button onclick="toggleMenu()" class="btn-fechar" style="background:none; border:none; color:red; font-size:20px; float:right;">✕</button>
+        <button onclick="toggleMenu()" style="background:none; border:none; color:red; font-size:20px; float:right;">✕</button>
         <div class="cat-title">ATMOSFERA</div>
         <button class="btn-layer" onclick="aplicarCamada('clouds')">☁️ Nuvens Reais</button>
         <button class="btn-layer" onclick="aplicarCamada('infra')">🌡️ Infravermelho</button>
@@ -40,27 +38,13 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Substitua pela sua API Key real
         const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f"; 
         
-        const map = L.map('map', { 
-            zoomControl: false, 
-            attributionControl: false,
-            doubleClickZoom: false, // Fix para não bugar o clique
-            tap: false
-        }).setView([-22.12, -51.38], 10);
-
+        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-22.12, -51.38], 10);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
         let camadaAtual = 'default';
         let layerAtiva = null;
-
-        function getClimaEmoji(code) {
-            if (code >= 200 && code < 300) return "⛈️";
-            if (code >= 300 && code < 600) return "🌧️";
-            if (code === 800) return "☀️";
-            return "☁️";
-        }
 
         function aplicarCamada(tipo) {
             camadaAtual = tipo;
@@ -75,80 +59,67 @@
             toggleMenu();
         }
 
-        // --- CLIQUE NO MAPA (O SEU CÓDIGO COM FIX DE CAMADAS) ---
+        // --- CLIQUE NO MAPA (O SEU CÓDIGO COM ANÁLISE DE CAMADAS) ---
         map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
             const painel = document.getElementById('painel-full');
             
-            // Ativa o painel (Feedback visual imediato)
-            document.getElementById('painel-content').innerHTML = "<h1>Obtendo Dados Atmosféricos...</h1>";
-            painel.className = 'clima-view active';
-
             try {
                 const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
                 const d = await res.json();
                 const cur = d.clima.current;
 
-                // Lógica de análise técnica de camada
+                // Lógica de análise dinâmica baseada na camada ativa
                 let camadaInfo = "";
                 if(camadaAtual === 'tempestades') {
-                    camadaInfo = `<div class="analise-box"><h2>⛈️ RADAR</h2><p><b>Precipitação:</b> ${cur.rain ? cur.rain['1h'] : '0.0'} mm/s</p><p><b>Detecção:</b> Partículas em suspensão.</p></div>`;
+                    camadaInfo = `<div class="analise-box"><h2>⛈️ RADAR</h2><p><b>Precipitação:</b> ${cur.rain ? cur.rain['1h'] : '0.0'} mm/s</p><p><b>Estado:</b> Água em suspensão detectada.</p></div>`;
                 } else if(camadaAtual === 'clouds') {
                     camadaInfo = `<div class="analise-box"><h2>☁️ NUVENS</h2><p><b>Cobertura:</b> ${cur.clouds}%</p><p><b>Altitude:</b> Nível Médio/Baixo</p></div>`;
                 } else if(camadaAtual === 'infra') {
-                    camadaInfo = `<div class="analise-box"><h2>🌡️ INFRAVERMELHO</h2><p><b>Assinatura Térmica:</b> ${cur.temp > 25 ? 'ALTA' : 'ESTÁVEL'}</p></div>`;
+                    camadaInfo = `<div class="analise-box"><h2>🌡️ TÉRMICO</h2><p><b>Assinatura:</b> ${cur.temp > 25 ? 'ALTA' : 'ESTÁVEL'}</p><p><b>Vento:</b> ${cur.wind_speed} km/h</p></div>`;
+                } else if(camadaAtual === 'satelite_base') {
+                    camadaInfo = `<div class="analise-box"><h2>🛰️ SOLO</h2><p><b>Espectro:</b> Visível</p><p><b>Relevo:</b> Ativo</p></div>`;
                 }
 
                 document.getElementById('painel-content').innerHTML = `
                     <div class="clima-section">
                         <h1>${d.geo.address.city || d.geo.address.town || "Ponto Geográfico"}</h1>
-                        <div style="font-size:80px; margin:10px 0">${getClimaEmoji(cur.weather[0].id)}</div>
                         <div class="temp-val">${Math.round(cur.temp)}°C</div>
                         <div class="clima-grid">
                             <div class="c-item">💧 Umidade: ${cur.humidity}%</div>
                             <div class="c-item">🌬️ Vento: ${cur.wind_speed} km/h</div>
                             <div class="c-item">🍃 Ar: ${d.poluicao.list[0].main.aqi} AQI</div>
                             <div class="c-item">👁️ Visib: ${cur.visibility / 1000}km</div>
+                            <div class="c-item">🌇 Pôr do sol: ${new Date(cur.sunset * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                             <div class="c-item">⏲️ Pressão: ${cur.pressure}hPa</div>
-                            <div class="c-item">🌇 Pôr do sol: ${new Date(cur.sunset * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                         </div>
                         ${camadaInfo}
                     </div>
                 `;
-            } catch (err) {
-                document.getElementById('painel-content').innerHTML = "<h1>Erro na conexão</h1>";
-            }
+                painel.className = 'clima-view active';
+            } catch (err) { /* Silencioso */ }
         });
 
-        // --- ALERTAS (FIX DE POSICIONAMENTO) ---
+        // --- ALERTAS (🔅INMET E ☁️NOAA) ---
         async function renderizarIconesNosMapas() {
             const res = await fetch('/api/alertas');
             const data = await res.json();
 
-            // 🔅 INMET (Brasília)
-            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) })
-                .addTo(map).on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    abrirAlerta('🔅 INMET BRASIL', data.inmet);
-                });
+            // Brasilia - INMET
+            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map)
+                .on('click', () => abrirAlerta('🔅 INMET BRASIL', data.inmet));
 
-            // ☁️ NOAA (Washington)
-            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) })
-                .addTo(map).on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    abrirAlerta('☁️ NOAA USA', data.noaa);
-                });
-
-            alert("Sistemas de Monitoramento Ativados.");
+            // Washington - NOAA
+            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map)
+                .on('click', () => abrirAlerta('☁️ NOAA USA', data.noaa));
         }
 
-        function abrirAlerta(f, l) {
-            let h = `<h1>${f}</h1>`;
-            if(l.length === 0) h += "<p>Sem alertas críticos.</p>";
-            l.forEach(i => {
-                h += `<div class="analise-box"><h3>${i.title || i.properties.event}</h3><p>${i.description || i.properties.headline}</p></div>`;
+        function abrirAlerta(titulo, lista) {
+            let html = `<h1>${titulo}</h1>`;
+            lista.forEach(i => {
+                html += `<div class="analise-box"><h3>${i.title || i.properties.event}</h3><p>${i.description || i.properties.headline}</p></div>`;
             });
-            document.getElementById('painel-content').innerHTML = h;
+            document.getElementById('painel-content').innerHTML = html;
             document.getElementById('painel-full').className = 'alerta-view active';
         }
 
