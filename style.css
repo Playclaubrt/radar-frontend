@@ -1,61 +1,35 @@
-/* RESET GERAL */
 body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; position: absolute; }
 
-/* CONTROLES SUPERIORES */
-#search-container { 
-    position: fixed; top: 15px; left: 15px; z-index: 9999; 
-    background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 25px; border: 1px solid #00ff99; display: flex; align-items: center;
-}
-#input-busca { background: none; border: none; color: white; outline: none; width: 140px; padding: 8px; font-size: 16px; }
-
-#container-controles { 
-    position: fixed; top: 15px; right: 15px; z-index: 9999; 
-    display: flex; flex-direction: column; align-items: flex-end; gap: 10px; 
-}
-#btn-menu { 
-    background: #001a33; border: 2px solid #00ff99; padding: 10px; border-radius: 8px; 
-    display: flex; flex-direction: column; gap: 4px; width: 50px; align-items: center;
-}
+/* CONTROLES */
+#search-container { position: fixed; top: 15px; left: 15px; z-index: 9999; background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 25px; border: 1px solid #00ff99; display: flex; align-items: center; }
+#input-busca { background: none; border: none; color: white; outline: none; width: 140px; padding: 8px; }
+#container-controles { position: fixed; top: 15px; right: 15px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+#btn-menu { background: #001a33; border: 2px solid #00ff99; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; }
 .bar { width: 25px; height: 3px; background: #00ff99; }
-#btn-ativar-alertas { background: #ffcc00; color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 11px; }
 
-/* PAINEL FULL - SISTEMA DE SUBIDA */
-#painel-full {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 10000; transform: translateY(100%); 
-    transition: transform 0.4s cubic-bezier(0, 0, 0.2, 1);
-    overflow-y: auto; display: block !important;
-}
-#painel-full.active { transform: translateY(0) !important; }
-
-.clima-view { background: linear-gradient(180deg, #001a33 0%, #0066ff 100%); }
+/* PAINEL */
+#painel-full { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; transform: translateY(100%); transition: 0.4s; overflow-y: auto; }
+#painel-full.active { transform: translateY(0); }
+.clima-view { background: linear-gradient(180deg, #001a33 0%, #0044cc 100%); }
 .alerta-view { background: #000; }
 
-/* GRID DE INFORMAÇÕES (SMARTPHONE) */
-#painel-content { padding: 60px 20px; text-align: center; }
-.temp-txt { font-size: 80px; font-weight: bold; margin: 10px 0; color: #fff; }
-.clima-grid { 
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; 
-}
-.c-item { 
-    background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 12px; 
-    border: 1px solid rgba(255, 255, 255, 0.1); font-size: 13px; text-align: center;
-}
-.analise-box { 
-    background: #111; padding: 20px; margin: 15px 0; border-left: 5px solid #ffcc00; text-align: left; 
-}
-.btn-close-full { 
-    position: fixed; top: 20px; right: 20px; background: white; border: none; 
-    width: 45px; height: 45px; border-radius: 50%; font-weight: bold; z-index: 10001;
-}
+/* GRID DE PREVISÃO TOPO */
+.forecast-header { display: flex; justify-content: space-around; padding: 20px 10px; background: rgba(0,0,0,0.2); font-weight: bold; font-size: 12px; }
 
-/* MENU LATERAL */
-#menu-lateral { 
-    position: fixed; top: 0; right: -320px; width: 280px; height: 100%; 
-    background: #000; z-index: 9999; transition: 0.4s; padding: 20px; border-left: 2px solid #00ff99; 
+#painel-content { padding: 20px; text-align: center; }
+.temp-txt { font-size: 75px; font-weight: bold; margin: 10px 0; }
+.clima-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.c-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; font-size: 13px; }
+
+/* BOX DE CAMADAS TÉCNICAS */
+.analise-box { background: rgba(0,0,0,0.5); padding: 20px; margin-top: 20px; border-radius: 15px; border-left: 5px solid #00ff99; text-align: left; }
+
+/* BARRINHA INFRA NO CANTO DIREITO */
+#legenda-infra { 
+    position: fixed; bottom: 20px; right: 20px; z-index: 5000; 
+    background: #000; padding: 10px; border: 1px solid #ff4444; border-radius: 8px; display: none;
 }
-#menu-lateral.active { right: 0; }
-.btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: white; border: 1px solid #333; text-align: left; }
-.cat-title { color: #00ff99; font-size: 11px; margin-top: 30px; border-bottom: 1px solid #00ff99; padding-bottom: 5px; text-transform: uppercase; }
-.map-icon { font-size: 30px; cursor: pointer; text-align: center; }
+.barra-cores { width: 150px; height: 12px; background: linear-gradient(to right, #000033, #440088, #0000ff, #00ff00, #ffff00, #ff0000, #ffffff); margin-bottom: 5px; }
+
+.btn-close-full { position: fixed; top: 20px; right: 20px; width: 45px; height: 45px; border-radius: 50%; border: none; font-weight: bold; z-index: 10001; }
