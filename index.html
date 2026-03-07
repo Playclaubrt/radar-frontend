@@ -45,31 +45,33 @@
         const map = L.map('map', { 
             zoomControl: false, 
             attributionControl: false,
-            doubleClickZoom: false // REMOVE O ZOOM CHATO NO CLIQUE
+            doubleClickZoom: false
         }).setView([-22.12, -51.38], 10);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let camadaAtual = 'default';
         let layerAtiva = null;
 
-        // --- CLIQUE NO MAPA (ABRE O PAINEL IMEDIATAMENTE) ---
+        // --- CLIQUE NO MAPA (EXCLUSIVO CLIMA - PAINEL AZUL) ---
         map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
-            const painel = document.getElementById('painel-full');
-            
-            // Abre o painel no ato do clique (AZUL)
-            painel.className = 'clima-view active';
+            // Se o clique for em cima de um ícone de alerta, não dispara o clima
+            if (e.originalEvent.target.classList.contains('map-icon')) return;
 
-            const res = await fetch(`/api/clima-clique?lat=${lat}&lon=${lng}`);
-            const d = await res.json();
+            const painel = document.getElementById('painel-full');
+            const content = document.getElementById('painel-content');
             
+            // Força reset da classe e abre (Azul)
+            painel.className = 'clima-view active';
+            content.innerHTML = `<h2 style="margin-top:100px">Analisando coordenadas...</h2>`;
+
+            const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+            const d = await res.json();
             const cur = d.clima.current;
 
-            document.getElementById('painel-content').innerHTML = `
+            content.innerHTML = `
                 <div class="clima-section">
-                    <h1 style="margin:0">${d.geo.address.city || d.geo.address.town || "Localização"}</h1>
-                    <div style="font-size:100px; margin:10px 0">🌡️</div>
+                    <h1 style="margin:0">${d.geo.address.city || d.geo.address.town || "Ponto Geográfico"}</h1>
+                    <div style="font-size:100px; margin:15px 0">🌡️</div>
                     <div class="temp-txt">${Math.round(cur.temp)}°C</div>
                     
                     <div class="clima-grid">
@@ -86,31 +88,52 @@
             `;
         });
 
-        // --- ALERTAS (🔅BRASILIA E ☁️WASHINGTON) ---
+        // --- ALERTAS (EXCLUSIVO ALERTAS - PAINEL PRETO) ---
         async function renderizarIconesNosMapas() {
             const res = await fetch('/api/alertas');
             const data = await res.json();
 
-            // 🔅 INMET (Brasil)
-            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', () => {
-                let h = `<h1>🔅 INMET BRASIL</h1>`;
-                data.inmet.forEach(i => h += `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`);
-                document.getElementById('painel-content').innerHTML = h;
-                document.getElementById('painel-full').className = 'alerta-view active';
+            // Marcador Brasil
+            L.marker([-15.79, -47.88], { 
+                icon: L.divIcon({html:'🔅', className:'map-icon'}) 
+            }).addTo(map).on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev); // Impede de abrir o clima junto
+                abrirPainelAlerta('🔅 INMET BRASIL', data.inmet);
             });
 
-            // ☁️ NOAA (USA)
-            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', () => {
-                let h = `<h1>☁️ NOAA USA</h1>`;
-                data.noaa.forEach(i => h += `<div class="analise-box"><h3>${i.properties.event}</h3><p>${i.properties.headline}</p></div>`);
-                document.getElementById('painel-content').innerHTML = h;
-                document.getElementById('painel-full').className = 'alerta-view active';
+            // Marcador USA
+            L.marker([38.89, -77.03], { 
+                icon: L.divIcon({html:'☁️', className:'map-icon'}) 
+            }).addTo(map).on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev); // Impede de abrir o clima junto
+                abrirPainelAlerta('☁️ NOAA USA', data.noaa);
             });
         }
 
-        // --- UTILITÁRIOS ---
+        function abrirPainelAlerta(titulo, lista) {
+            const painel = document.getElementById('painel-full');
+            const content = document.getElementById('painel-content');
+            
+            painel.className = 'alerta-view active'; // Força painel PRETO
+            
+            let html = `<h1>${titulo}</h1>`;
+            if (lista.length === 0) html += "<p>Sem alertas ativos no momento.</p>";
+            
+            lista.forEach(i => {
+                const t = i.title || i.properties?.event || "Alerta";
+                const d = i.description || i.properties?.headline || "Sem descrição.";
+                html += `<div class="analise-box"><h3>${t}</h3><p>${d}</p></div>`;
+            });
+            
+            content.innerHTML = html;
+        }
+
+        function fecharPainel() { 
+            const painel = document.getElementById('painel-full');
+            painel.classList.remove('active');
+        }
+
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
-        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
 
         async function buscarLocalizacao() {
             const q = document.getElementById('input-busca').value;
@@ -125,8 +148,8 @@
             if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            if(tipo === 'satelite_base') url = 'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
-            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
+            if(tipo === 'satelite_base') url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'; 
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100 }).addTo(map);
             toggleMenu();
         }
     </script>
