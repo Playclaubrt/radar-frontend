@@ -16,101 +16,134 @@
 
     <div id="container-controles">
         <button id="btn-menu" onclick="toggleMenu()"><div class="bar"></div><div class="bar"></div><div class="bar"></div></button>
-        <button onclick="renderizarIconesNosMapas()" style="background:#ffcc00; border:none; padding:10px; border-radius:8px; font-weight:bold;">🔅 ALERTAS ☁️</button>
+        <button id="btn-ativar-alertas" onclick="renderizarIconesNosMapas()">🔅 ALERTAS ☁️</button>
+    </div>
+
+    <div id="menu-lateral">
+        <button onclick="toggleMenu()" style="color:red; background:none; border:none; font-size:20px;">✕ Fechar</button>
+        <div class="cat-title">ATMOSFERA</div>
+        <button class="btn-layer" onclick="aplicarCamada('clouds')">☁️ Nuvens Reais</button>
+        <button class="btn-layer" onclick="aplicarCamada('infra')">🌡️ Infravermelho</button>
+        <div class="cat-title">RADAR</div>
+        <button class="btn-layer" onclick="aplicarCamada('tempestades')">⛈️ Radar de Chuva</button>
+        <button class="btn-layer" onclick="aplicarCamada('satelite_base')">🛰️ Satélite</button>
     </div>
 
     <div id="map"></div>
 
     <div id="legenda-infra">
         <div class="barra-cores"></div>
-        <div style="font-size:9px; color:#ccc;">AZUL: FRIO / VERMELHO: CALOR / BRANCO: TEMPESTADE</div>
+        <div style="font-size:9px">FRIO (NUVENS) <---> CALOR (SOLO)</div>
     </div>
 
     <div id="painel-full">
         <button class="btn-close-full" onclick="fecharPainel()">✕</button>
-        <div class="forecast-header">
-            <span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span>
-        </div>
         <div id="painel-content"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f";
-        const map = L.map('map', { zoomControl:false, doubleClickZoom:false }).setView([-22.12, -51.38], 10);
+        const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f"; 
+        const map = L.map('map', { zoomControl: false, attributionControl: false, doubleClickZoom: false }).setView([-22.12, -51.38], 10);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let camadaAtiva = 'default';
-        let layerObjeto = null;
-
-        function toggleMenu() { /* Código do menu lateral omitido por espaço, mas você já tem */ }
+        let camadaAtual = 'default';
+        let layerAtiva = null;
 
         map.on('click', async (e) => {
             if (e.originalEvent.target.classList.contains('map-icon')) return;
+
             const painel = document.getElementById('painel-full');
+            const content = document.getElementById('painel-content');
             painel.className = 'clima-view active';
+            content.innerHTML = `<h2>Processando...</h2>`;
 
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const d = await res.json();
-            
-            const cur = d.clima;
-            const det = d.nuvens_detalhe;
+            const cur = d.clima.current;
+            const n = d.nuvens_tecnico;
 
-            // --- LÓGICA DE NUVENS (OPEN-METEO REAL) ---
-            let tipoNuvem = "Cumulus";
-            if (det.cloud_cover_high[0] > 50) tipoNuvem = "Cirrus";
-            if (det.cloud_cover_mid[0] > 50) tipoNuvem = "Altostratus";
-            if (det.cloud_cover_low[0] > 70) tipoNuvem = "Stratocumulus";
-            if (cur.weather[0].id < 300) tipoNuvem = "Cumulonimbus (CB)";
+            // Identificação do Nome da Nuvem
+            let nomeNuvem = "Cumulus";
+            if(n.cloud_cover_high[0] > 50) nomeNuvem = "Cirrus";
+            if(n.cloud_cover_low[0] > 80) nomeNuvem = "Stratus";
+            if(cur.weather[0].id < 300) nomeNuvem = "Cumulonimbus";
 
-            // --- INFO DAS CAMADAS ---
-            let infoExtra = "";
-            if(camadaAtiva === 'tempestades') {
-                infoExtra = `<div class="analise-box"><h3>⛈️ CHUVA</h3><p><b>Tipo:</b> ${cur.main.temp > 2 ? 'Líquida' : 'Gelo'}</p><p><b>Volume:</b> ${cur.rain ? cur.rain['1h'] : '0.0'} mm/s</p><p><b>Direção:</b> ${cur.wind.deg}°</p></div>`;
-            } else if(camadaAtiva === 'clouds') {
-                infoExtra = `<div class="analise-box"><h3>☁️ NUVENS TÉCNICAS</h3><p><b>Tipo:</b> ${tipoNuvem}</p><p><b>Altura:</b> ${det.cloud_base[0] > 2000 ? 'Médio/Alto' : 'Baixo'} (${det.cloud_base[0] || 0}m)</p><p><b>Velocidade:</b> ${cur.wind.speed} km/h</p><p><b>Previsão Precip:</b> ${det.precipitation_probability[0]}%</p></div>`;
-            } else if(camadaAtiva === 'infra') {
-                infoExtra = `<div class="analise-box" style="border-left-color: #ff4444"><h3>🌡️ INFRAVERMELHO</h3><p><b>Cor:</b> ${cur.main.temp > 25 ? 'Quente' : 'Frio'}</p><p><b>Topo Nuvens:</b> Atividade Convectiva</p><p><b>Emissividade:</b> Detectada</p></div>`;
-            } else if(camadaAtiva === 'satelite_base') {
-                infoExtra = `<div class="analise-box" style="border-left-color: #fff"><h3>🛰️ SATÉLITE</h3><p><b>Fase:</b> Refletância Visível</p><p><b>Solo:</b> Vegetação/Urbano</p><p><b>Sensor:</b> Orbital Multispectral</p></div>`;
+            let extraInfo = "";
+            if(camadaAtual === 'tempestades') {
+                extraInfo = `<div class="analise-box"><h3>⛈️ RADAR</h3><p><b>Tipo:</b> ${cur.weather[0].description}</p><p><b>mm/s:</b> ${cur.rain ? cur.rain['1h'] || 0 : 0}</p><p><b>Direção:</b> ${cur.wind_deg}°</p></div>`;
+            } else if(camadaAtual === 'clouds') {
+                extraInfo = `<div class="analise-box"><h3>☁️ NUVENS REAIS</h3><p><b>Tipo:</b> ${nomeNuvem}</p><p><b>Altura:</b> ${n.cloud_base[0] > 2000 ? 'Médio/Alto' : 'Baixo'} (${n.cloud_base[0] || 0}m)</p><p><b>Velocidade:</b> ${cur.wind_speed}km/h</p><p><b>Previsão:</b> ${n.precipitation_probability[0]}%</p></div>`;
+            } else if(camadaAtual === 'infra') {
+                extraInfo = `<div class="analise-box"><h3>🌡️ INFRAVERMELHO</h3><p><b>Cor:</b> ${cur.temp > 25 ? 'Vermelho' : 'Azul'}</p><p><b>Calor Emitido:</b> Ativo</p><p><b>Topo Nuvens:</b> ${Math.round(cur.temp - 15)}°C</p></div>`;
+            } else if(camadaAtual === 'satelite_base') {
+                extraInfo = `<div class="analise-box"><h3>🛰️ SATÉLITE</h3><p><b>Refletância:</b> Alta</p><p><b>Albedo:</b> 0.75</p><p><b>Fase:</b> Visível</p></div>`;
             }
 
-            document.getElementById('painel-content').innerHTML = `
+            content.innerHTML = `
+                <div class="week-grid"><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span></div>
                 <h1 style="margin:0">${d.geo.address.city || "Localização"}</h1>
-                <div class="temp-txt">${Math.round(cur.main.temp)}°C</div>
-                
+                <div class="temp-txt">${Math.round(cur.temp)}°C</div>
                 <div style="font-size:18px; margin-bottom:20px;">
-                    ${getEmoji(cur.weather[0].id)} SEG, 17 de MAR <span style="font-size:20px">👑</span> </div>
-
+                    ${getEmoji(cur.weather[0].id)} SEG, 17 de MAR <span style="font-size:22px">👑</span>
+                </div>
                 <div class="clima-grid">
-                    <div class="c-item"><b>💧 Umidade</b><br>${cur.main.humidity}%</div>
-                    <div class="c-item"><b>🌬️ Vento</b><br>${cur.wind.speed}km/h</div>
-                    <div class="c-item"><b>⏲️ Pressão</b><br>${cur.main.pressure}hPa</div>
+                    <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity}%</div>
+                    <div class="c-item"><b>🌬️ Vento</b><br>${cur.wind_speed}km/h</div>
+                    <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure}hPa</div>
                     <div class="c-item"><b>🍃 Ar</b><br>${d.poluicao.list[0].main.aqi} AQI</div>
                 </div>
-                ${infoExtra}
+                ${extraInfo}
             `;
         });
 
-        function getEmoji(c) {
-            if(c < 300) return "⛈️"; if(c < 600) return "🌧️"; if(c === 800) return "☀️"; return "☁️";
-        }
+        function getEmoji(c) { if(c<300)return"⛈️"; if(c<600)return"🌧️"; if(c===800)return"☀️"; return"☁️"; }
 
         function aplicarCamada(tipo) {
-            camadaAtiva = tipo;
-            if(layerObjeto) map.removeLayer(layerObjeto);
+            camadaAtual = tipo;
+            if(layerAtiva) map.removeLayer(layerAtiva);
             document.getElementById('legenda-infra').style.display = (tipo === 'infra') ? 'block' : 'none';
-            
             let url = "";
             if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            if(tipo === 'satelite_base') url = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'; // Satélite Puro
-
-            if(url) layerObjeto = L.tileLayer(url, { opacity: 0.8, zIndex: 100 }).addTo(map);
+            // SATÉLITE GOOGLE REAL (Sem fios/estradas)
+            if(tipo === 'satelite_base') url = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
+            
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100 }).addTo(map);
+            toggleMenu();
         }
 
+        async function renderizarIconesNosMapas() {
+            const res = await fetch('/api/alertas');
+            const data = await res.json();
+            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev);
+                abrirPainelAlerta('🔅 INMET BRASIL', data.inmet);
+            });
+            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev);
+                abrirPainelAlerta('☁️ NOAA USA', data.noaa);
+            });
+        }
+
+        function abrirPainelAlerta(titulo, lista) {
+            const painel = document.getElementById('painel-full');
+            const content = document.getElementById('painel-content');
+            painel.className = 'alerta-view active';
+            let h = `<h1>${titulo}</h1>`;
+            lista.forEach(i => h += `<div class="analise-box"><h3>${i.title || i.properties?.event}</h3><p>${i.description || i.properties?.headline}</p></div>`);
+            content.innerHTML = h;
+        }
+
+        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        async function buscarLocalizacao() {
+            const q = document.getElementById('input-busca').value;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+            const data = await res.json();
+            if(data[0]) map.setView([data[0].lat, data[0].lon], 11);
+        }
     </script>
 </body>
 </html>
