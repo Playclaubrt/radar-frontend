@@ -1,15 +1,16 @@
-/* MANTENDO SEU RESET E ESTRUTURA ORIGINAL */
+/* RESET GERAL */
 body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white; font-family: sans-serif; overflow: hidden; }
 #map { height: 100vh; width: 100vw; z-index: 1; position: absolute; }
 
+/* CONTROLES */
 #search-container { position: fixed; top: 15px; left: 15px; z-index: 9999; background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 25px; border: 1px solid #00ff99; display: flex; align-items: center; }
 #input-busca { background: none; border: none; color: white; outline: none; width: 140px; padding: 8px; font-size: 16px; }
-
 #container-controles { position: fixed; top: 15px; right: 15px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-#btn-menu { background: #001a33; border: 2px solid #00ff99; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; width: 50px; align-items: center; }
+#btn-menu { background: #001a33; border: 2px solid #00ff99; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; width: 50px; align-items: center; cursor: pointer; }
 .bar { width: 25px; height: 3px; background: #00ff99; }
-#btn-ativar-alertas { background: #ffcc00; color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 11px; }
+#btn-ativar-alertas { background: #ffcc00; color: #000; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 11px; cursor: pointer; }
 
+/* PAINEL */
 #painel-full { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0, 0, 0.2, 1); overflow-y: auto; }
 #painel-full.active { transform: translateY(0) !important; }
 .clima-view { background: linear-gradient(180deg, #001a33 0%, #0066ff 100%); }
@@ -20,32 +21,27 @@ body, html { margin: 0; padding: 0; height: 100%; background: #000; color: white
 .clima-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
 .c-item { background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 13px; text-align: center; }
 
-/* O QUADRADO DOS DIAS QUE VOCÊ PEDIU */
-.quadrado-previsao {
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px solid rgba(255,255,255,0.2);
-    border-radius: 15px;
-    margin: 20px 0;
-    padding: 15px;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
+/* QUADRADO DE PREVISÃO (ABAIXO DOS GRIDS) */
+.previsao-semana { 
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); 
+    border-radius: 15px; margin: 20px 0; padding: 15px;
+    display: flex; justify-content: space-around; align-items: center;
 }
-.dia-item { text-align: center; font-weight: bold; font-size: 12px; }
-.dia-emoji { font-size: 24px; display: block; margin-top: 5px; }
+.dia-col { text-align: center; font-size: 12px; }
+.dia-col b { display: block; margin-bottom: 5px; color: #00ff99; }
+.dia-col span { font-size: 20px; }
 
+/* ANÁLISE TÉCNICA (ABAIXO DA PREVISÃO) */
 .analise-box { background: #111; padding: 20px; margin: 15px 0; border-left: 5px solid #ffcc00; text-align: left; }
+
+/* LEGENDA INFRA NO MAPA */
+#legenda-infra { position: fixed; bottom: 20px; right: 20px; z-index: 5000; background: #000; padding: 10px; border: 1px solid #ff4444; border-radius: 8px; display: none; text-align: center; }
+.grad-cor { width: 120px; height: 10px; background: linear-gradient(to right, blue, green, yellow, red, white); margin-bottom: 5px; }
+
 .btn-close-full { position: fixed; top: 20px; right: 20px; background: white; border: none; width: 45px; height: 45px; border-radius: 50%; font-weight: bold; z-index: 10001; }
 
 #menu-lateral { position: fixed; top: 0; right: -320px; width: 280px; height: 100%; background: #000; z-index: 9999; transition: 0.4s; padding: 20px; border-left: 2px solid #00ff99; }
 #menu-lateral.active { right: 0; }
-.btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: white; border: 1px solid #333; text-align: left; }
+.btn-layer { width: 100%; padding: 15px; margin-top: 10px; background: #111; color: white; border: 1px solid #333; text-align: left; cursor: pointer; }
 .cat-title { color: #00ff99; font-size: 11px; margin-top: 30px; border-bottom: 1px solid #00ff99; padding-bottom: 5px; text-transform: uppercase; }
 .map-icon { font-size: 30px; cursor: pointer; text-align: center; }
-
-/* LEGENDA INFRA NO CANTO */
-#legenda-infra {
-    position: fixed; bottom: 20px; right: 20px; z-index: 9998;
-    background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; border: 1px solid #ff4444; display: none;
-}
-.barra-infra { width: 120px; height: 10px; background: linear-gradient(to right, #000033, #0000ff, #00ffff, #ffff00, #ff0000); margin-bottom: 5px; }
