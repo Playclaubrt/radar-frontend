@@ -9,13 +9,34 @@
 </head>
 <body>
 
+    <div id="search-container">
+        <input type="text" id="input-busca" placeholder="Pesquisar cidade...">
+        <button onclick="buscarLocalizacao()">🔍</button>
+    </div>
+
     <div id="container-controles">
-        <button id="btn-menu" onclick="toggleMenu()"><div class="bar"></div><div class="bar"></div><div class="bar"></div></button>
-        <button onclick="renderizarIconesNosMapas()" id="btn-ativar-alertas">🔅 ALERTAS ☁️</button>
+        <button id="btn-menu" onclick="toggleMenu()">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </button>
+        <button id="btn-ativar-alertas" onclick="renderizarIconesNosMapas()">🔅 ALERTAS ☁️</button>
+    </div>
+
+    <div id="menu-lateral">
+        <button onclick="toggleMenu()" style="color:red; background:none; border:none; font-size:20px;">✕ Fechar</button>
+        <div class="cat-title">ATMOSFERA</div>
+        <button class="btn-layer" onclick="aplicarCamada('clouds')">☁️ Nuvens Reais</button>
+        <button class="btn-layer" onclick="aplicarCamada('infra')">🌡️ Infravermelho</button>
+        <div class="cat-title">RADAR</div>
+        <button class="btn-layer" onclick="aplicarCamada('tempestades')">⛈️ Radar de Chuva</button>
+        <button class="btn-layer" onclick="aplicarCamada('satelite_base')">🛰️ Satélite</button>
     </div>
 
     <div id="map"></div>
-    <div id="legenda-infra"><div class="barra-infra"></div>INFRA: FRIO <-> CALOR</div>
+
+    <div id="legenda-infra">
+        <div class="barra-infra"></div>
+        <span style="font-size:9px;">FRIO <-> QUENTE</span>
+    </div>
 
     <div id="painel-full">
         <button class="btn-close-full" onclick="fecharPainel()">✕</button>
@@ -25,87 +46,122 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const API_KEY_OWM = "7609a59c493758162d9b0a6af2914e1f"; 
-        const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-22.12, -51.38], 10);
+        const map = L.map('map', { zoomControl: false, attributionControl: false, doubleClickZoom: false }).setView([-22.12, -51.38], 10);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        let camadaAtiva = 'default';
-        let layerObjeto = null;
-
-        // Tradutor de códigos Open-Meteo para seus Emojis
-        function getEmojiMeteo(code) {
-            if (code <= 1) return "🌞";
-            if (code <= 3) return "🌤️";
-            if (code <= 48) return "🌫️";
-            if (code <= 67) return "🌧️";
-            if (code <= 77) return "❄️";
-            if (code <= 82) return "🌦️";
-            if (code <= 99) return "⛈️";
-            return "☁️";
-        }
+        let layerAtiva = null;
+        let camadaTipo = 'default';
 
         map.on('click', async (e) => {
             if (e.originalEvent.target.classList.contains('map-icon')) return;
             const painel = document.getElementById('painel-full');
+            const content = document.getElementById('painel-content');
+            
             painel.className = 'clima-view active';
+            content.innerHTML = `<h2>Analisando...</h2>`;
 
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const d = await res.json();
             const cur = d.clima.current;
-            const forecast = d.previsao_dias;
+            const det = d.nuvens_detalhe;
 
-            // --- INFO DAS CAMADAS ---
+            // Determinar Tipo de Nuvem Real (Open-Meteo)
+            let nNome = "Cumulus";
+            if(det.cloud_cover_high[0] > 50) nNome = "Cirrus";
+            if(det.cloud_cover_low[0] > 70) nNome = "Stratocumulus";
+            if(cur.weather[0].id < 300) nNome = "Cumulonimbus";
+
+            // Informações das Camadas
             let infoCamada = "";
-            if(camadaAtiva === 'tempestades') {
-                infoCamada = `<div class="analise-box"><h3>⛈️ RADAR</h3><p><b>Tipo:</b> ${cur.temp > 2 ? 'Líquida' : 'Gelo'}</p><p><b>mm/s:</b> ${cur.temp > 15 ? '0.8' : '0.0'}</p><p><b>Direção:</b> ${cur.wind_deg}°</p></div>`;
-            } else if(camadaAtiva === 'clouds') {
-                infoCamada = `<div class="analise-box"><h3>☁️ NUVENS</h3><p><b>Tipo:</b> ${cur.clouds > 70 ? 'Cumulonimbus' : 'Cumulus'}</p><p><b>Altura:</b> ${cur.clouds > 50 ? 'Médio' : 'Baixo'}</p><p><b>Velocidade:</b> ${cur.wind_speed}km/h</p></div>`;
-            } else if(camadaAtiva === 'infra') {
-                infoCamada = `<div class="analise-box"><h3>🌡️ INFRA</h3><p><b>Cor:</b> ${cur.temp > 25 ? 'Vermelho' : 'Azul'}</p><p><b>Calor Emitido:</b> Ativo</p><p><b>Refletância:</b> ${cur.clouds}%</p></div>`;
-            } else if(camadaAtiva === 'satelite_base') {
-                infoCamada = `<div class="analise-box"><h3>🛰️ SATÉLITE</h3><p><b>Albedo:</b> Alto</p><p><b>Sensor:</b> Visível</p><p><b>Solo:</b> Orbital</p></div>`;
+            if(camadaTipo === 'tempestades') {
+                infoCamada = `<div class="analise-box"><h3>⛈️ RADAR DE CHUVA</h3><p><b>Tipo:</b> ${cur.temp > 2 ? 'Chuva' : 'Neve/Gelo'}</p><p><b>mm/s:</b> ${cur.rain ? cur.rain['1h'] : '0.0'}</p><p><b>Direção:</b> ${cur.wind_deg}°</p></div>`;
+            } else if(camadaTipo === 'clouds') {
+                infoCamada = `<div class="analise-box"><h3>☁️ NUVENS REAIS</h3><p><b>Tipo:</b> ${nNome}</p><p><b>Altura:</b> ${det.cloud_base[0] > 2000 ? 'Médio' : 'Baixo'} (${det.cloud_base[0] || 0}m)</p><p><b>Velocidade:</b> ${cur.wind_speed}km/h</p><p><b>Precipitação:</b> ${det.precipitation_probability[0]}%</p></div>`;
+            } else if(camadaTipo === 'infra') {
+                infoCamada = `<div class="analise-box"><h3>🌡️ INFRAVERMELHO</h3><p><b>Cor:</b> ${cur.temp > 25 ? 'Vermelho' : 'Azul'}</p><p><b>Topo Nuvens:</b> ${Math.round(cur.temp - 15)}°C</p><p><b>Emissividade:</b> Ativa</p></div>`;
+            } else if(camadaTipo === 'satelite_base') {
+                infoCamada = `<div class="analise-box"><h3>🛰️ SATÉLITE</h3><p><b>Refletância:</b> Alta</p><p><b>Albedo:</b> 0.75</p><p><b>Solo:</b> Visível</p></div>`;
             }
 
-            document.getElementById('painel-content').innerHTML = `
-                <h1 style="margin:0">${d.geo.address.city || "Ponto"}</h1>
-                <div class="temp-txt">${Math.round(cur.temp)}°C</div>
-                <div style="margin-bottom:20px">${getEmojiMeteo(forecast.weathercode[0])} SEG, 17 de MAR 👾</div>
+            content.innerHTML = `
+                <div class="clima-section">
+                    <h1 style="margin:0">${d.geo.address.city || "Localização"}</h1>
+                    <div style="font-size:100px; margin:15px 0">🌡️</div>
+                    <div class="temp-txt">${Math.round(cur.temp)}°C</div>
+                    
+                    <div style="font-size:18px; margin-bottom:10px;">
+                        ${getEmoji(cur.weather[0].id)} SEG, 17 de MAR <span style="font-size:22px">👾</span>
+                    </div>
 
-                <div class="clima-grid">
-                    <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity}%</div>
-                    <div class="c-item"><b>🌬️ Vento</b><br>${cur.wind_speed}km/h</div>
-                    <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure}hPa</div>
-                    <div class="c-item"><b>🍃 Ar</b><br>${d.poluicao.list[0].main.aqi} AQI</div>
+                    <div class="clima-grid">
+                        <div class="c-item"><b>👁️ Visibilidade</b><br>${cur.visibility / 1000}km</div>
+                        <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity}%</div>
+                        <div class="c-item"><b>🌬️ Ventos</b><br>${cur.wind_speed}km/h</div>
+                        <div class="c-item"><b>🍃 Qualidade Ar</b><br>${d.poluicao.list[0].main.aqi} AQI</div>
+                        <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure}hPa</div>
+                        <div class="c-item"><b>🌇 Pôr do sol</b><br>${new Date(cur.sunset * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div class="c-item"><b>🌅 Nascer do sol</b><br>${new Date(cur.sunrise * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div class="c-item"><b>🌡️ Sensação</b><br>${Math.round(cur.feels_like)}°C</div>
+                    </div>
+
+                    <div class="quadrado-previsao">
+                        <div class="dia-item">SEG<span class="dia-emoji">☀️</span></div>
+                        <div class="dia-item">TER<span class="dia-emoji">🌤️</span></div>
+                        <div class="dia-item">QUA<span class="dia-emoji">⛅</span></div>
+                        <div class="dia-item">QUI<span class="dia-emoji">☁️</span></div>
+                        <div class="dia-item">SEX<span class="dia-emoji">🌧️</span></div>
+                    </div>
+
+                    ${infoCamada}
                 </div>
-
-                <div class="quadrado-previsao">
-                    <div class="dia-item"><b>SEG</b> <span>${getEmojiMeteo(forecast.weathercode[0])}</span></div>
-                    <div class="dia-item"><b>TER</b> <span>${getEmojiMeteo(forecast.weathercode[1])}</span></div>
-                    <div class="dia-item"><b>QUA</b> <span>${getEmojiMeteo(forecast.weathercode[2])}</span></div>
-                    <div class="dia-item"><b>QUI</b> <span>${getEmojiMeteo(forecast.weathercode[3])}</span></div>
-                    <div class="dia-item"><b>SEX</b> <span>${getEmojiMeteo(forecast.weathercode[4])}</span></div>
-                </div>
-
-                ${infoCamada}
             `;
         });
 
+        function getEmoji(c) {
+            if(c < 300) return "⛈️"; if(c < 600) return "🌧️"; if(c === 800) return "☀️"; return "☁️";
+        }
+
+        async function renderizarIconesNosMapas() {
+            const res = await fetch('/api/alertas');
+            const data = await res.json();
+            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev); abrirPainelAlerta('🔅 INMET BRASIL', data.inmet);
+            });
+            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev); abrirPainelAlerta('☁️ NOAA USA', data.noaa);
+            });
+        }
+
+        function abrirPainelAlerta(titulo, lista) {
+            const painel = document.getElementById('painel-full');
+            const content = document.getElementById('painel-content');
+            painel.className = 'alerta-view active';
+            let html = `<h1>${titulo}</h1>`;
+            lista.forEach(i => html += `<div class="analise-box"><h3>${i.title || i.properties?.event}</h3><p>${i.description || i.properties?.headline}</p></div>`);
+            content.innerHTML = html;
+        }
+
         function aplicarCamada(tipo) {
-            camadaAtiva = tipo;
-            if(layerObjeto) map.removeLayer(layerObjeto);
+            camadaTipo = tipo;
+            if(layerAtiva) map.removeLayer(layerAtiva);
             document.getElementById('legenda-infra').style.display = (tipo === 'infra') ? 'block' : 'none';
-            
             let url = "";
             if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
-            
-            // SATÉLITE REAL (Google Satélite sem fios/nomes)
-            if(tipo === 'satelite_base') url = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'; 
-
-            if(url) layerObjeto = L.tileLayer(url, { opacity: 0.8, zIndex: 100 }).addTo(map);
+            if(tipo === 'satelite_base') url = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'; // SATÉLITE REAL
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100 }).addTo(map);
+            toggleMenu();
         }
 
         function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
+        async function buscarLocalizacao() {
+            const q = document.getElementById('input-busca').value;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+            const data = await res.json();
+            if(data[0]) map.setView([data[0].lat, data[0].lon], 11);
+        }
     </script>
 </body>
 </html>
