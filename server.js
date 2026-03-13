@@ -143,7 +143,7 @@ app.post('/api/news/postar', (req, res) => {
 app.post('/api/dev/github-control', async (req, res) => {
     const { token_interno, arquivo, conteudo, mensagem } = req.body;
     const GH_PAT = process.env.GITHUB_PAT; // Variável de Ambiente do Render
-    const REPO = "SEU_USUARIO/SEU_REPOSITORIO";
+    const REPO = "Playclaubrt/radar-frontend";
 
     if (token_interno !== MASTER_INTERNAL_TOKEN) return res.status(403).send("Token Inválido");
 
