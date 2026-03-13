@@ -10,21 +10,20 @@
 <body>
 
     <div id="search-container">
-        <input type="text" id="input-busca" placeholder="Pesquisar cidade...">
+        <input type="text" id="input-busca" placeholder="Pesquisar cidade..." autocomplete="off">
         <button onclick="buscarLocalizacao()">🔍</button>
     </div>
 
     <div id="container-controles">
         <button id="btn-menu" onclick="toggleMenu()"><div class="bar"></div><div class="bar"></div><div class="bar"></div></button>
         <button id="btn-ativar-alertas" onclick="renderizarIconesNosMapas()">🔅 ALERTAS ☁️</button>
-        <div id="user-avatar" onclick="abrirPerfil()" style="width: 50px; height: 50px; background: #111; border-radius: 50%; border: 2px solid #00ff99; cursor: pointer; background-size: cover; margin-top:10px;"></div>
+        <div id="user-avatar" onclick="abrirPerfil()"></div>
     </div>
 
     <div id="menu-lateral">
         <button onclick="toggleMenu()" style="color:red; background:none; border:none; font-size:20px;">✕ Fechar</button>
         <div class="cat-title">COMUNIDADE</div>
         <button class="btn-layer" onclick="abrirNews()">📰 News / Avisos</button>
-        
         <div class="cat-title">ATMOSFERA</div>
         <button class="btn-layer" onclick="aplicarCamada('clouds')">☁️ Nuvens Reais</button>
         <button class="btn-layer" onclick="aplicarCamada('infra')">🌡️ Infravermelho</button>
@@ -39,6 +38,14 @@
     <div id="painel-full">
         <button class="btn-close-full" onclick="fecharPainel()">✕</button>
         <div id="painel-content"></div>
+    </div>
+
+    <div id="terminal-criador" style="display:none; position:fixed; bottom:0; left:0; width:100%; background:#000; border-top:3px solid #00ff99; z-index:20000; padding:20px; box-sizing:border-box; box-shadow: 0 -10px 40px rgba(0,255,153,0.3);">
+        <h3 style="color:#00ff99; margin:0 0 15px 0; font-family:monospace;">> CHASER_OS_TERMINAL_V3</h3>
+        <input type="text" id="post-titulo" class="auth-input" placeholder="TÍTULO DA NOTÍCIA" autocomplete="off">
+        <textarea id="post-conteudo" class="auth-input" placeholder="CONTEÚDO DA NOTÍCIA..." style="height:100px; background: #080808; color: #00ff99; width: 100%; border: 1px solid #222; border-radius: 8px; padding: 10px; box-sizing: border-box;"></textarea>
+        <button class="btn-auth" onclick="enviarPostagem()" style="width:100%; padding:15px; background:#00ff99; border:none; font-weight:bold; margin-top:10px; border-radius:8px; cursor:pointer;">EXECUTAR PUSH GITHUB</button>
+        <button onclick="document.getElementById('terminal-criador').style.display='none'" style="background:none; border:none; color:gray; width:100%; margin-top:15px; cursor:pointer;">[ CANCELAR ]</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -56,11 +63,7 @@
             if(code <= 99) return "⛈️"; return "☁️";
         };
 
-        const getNuvemNome = (code) => {
-            const nomes = {0:"Céu Limpo", 1:"Mainly Clear", 2:"Partly Cloudy", 3:"Overcast", 45:"Fog", 48:"Depositing Rime Fog"};
-            return nomes[code] || "Nuvem Detectada";
-        };
-
+        // LÓGICA DE CLIQUE NO MAPA (CLIMA)
         map.on('click', async (e) => {
             if (e.originalEvent.target.classList.contains('map-icon')) return;
             const painel = document.getElementById('painel-full');
@@ -69,86 +72,64 @@
             const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
             const d = await res.json();
             const cur = d.clima.current;
-            const h = d.extra.hourly;
             const daily = d.extra.daily;
 
-            let infoCamada = "";
-            if(camadaAtual === 'tempestades') {
-                infoCamada = `<div class="analise-box"><h3>⛈️ RADAR</h3><p><b>Tipo:</b> ${cur.temp > 2 ? 'Chuva' : 'Neve'}</p><p><b>mm/s:</b> ${h.precipitation[0]} mm/s</p><p><b>Direção:</b> ${cur.wind_deg}°</p></div>`;
-            } else if(camadaAtual === 'clouds') {
-                infoCamada = `<div class="analise-box"><h3>☁️ NUVENS TÉCNICAS</h3><p><b>Tipo:</b> ${getNuvemNome(d.extra.daily.weathercode[0])}</p><p><b>Altura:</b> ${h.cloud_base[0] > 2000 ? 'Alto' : 'Baixo'} (${h.cloud_base[0] || 0}m)</p><p><b>Velocidade:</b> ${h.wind_speed_10m[0]} km/h</p></div>`;
-            } else if(camadaAtual === 'infra') {
-                infoCamada = `<div class="analise-box"><h3>🌡️ INFRA</h3><p><b>Cor:</b> ${cur.temp > 20 ? 'Quente' : 'Frio'}</p><p><b>Topo:</b> Emissão Térmica</p><p><b>Reflexo:</b> Ativo</p></div>`;
-            } else if(camadaAtual === 'satelite_base') {
-                infoCamada = `<div class="analise-box"><h3>🛰️ SATÉLITE</h3><p><b>Albedo:</b> Refletância Visível</p><p><b>Sensor:</b> Orbital</p></div>`;
-            }
-
-            const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
-            const hoje = new Date();
-            let htmlDias = "";
-            for(let i=0; i<7; i++) { // Corrigido para 7 dias
-                let dIdx = (hoje.getDay() + i) % 7;
-                htmlDias += `<div class="dia-col"><b>${diasSemana[dIdx]}</b>${getEmoji(daily.weathercode[i])}<br><small>${Math.round(daily.temperature_2m_max[i])}°</small></div>`;
-            }
-
-            // Formatação de Sol
             const formatSol = (ts) => new Date(ts * 1000).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+            let htmlDias = "";
+            for(let i=0; i<7; i++) {
+                let dIdx = (new Date().getDay() + i) % 7;
+                htmlDias += `<div class="dia-col"><b>${["DOM","SEG","TER","QUA","QUI","SEX","SÁB"][dIdx]}</b>${getEmoji(daily.weathercode[i])}<br><small>${Math.round(daily.temperature_2m_max[i])}°</small></div>`;
+            }
 
             document.getElementById('painel-content').innerHTML = `
                 <h1>${d.geo.address.city || d.geo.address.town || "Localização"}</h1>
                 <div class="temp-txt">${Math.round(cur.temp)}°C</div>
-                <div style="margin-bottom:20px">${getEmoji(daily.weathercode[0])} ${new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})} 👾</div>
-                
                 <div class="clima-grid">
                     <div class="c-item"><b>👁️ Visibilidade</b><br>${cur.visibility / 1000}km</div>
                     <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity}%</div>
                     <div class="c-item"><b>🌬️ Ventos</b><br>${cur.wind_speed}km/h</div>
-                    <div class="c-item"><b>🍃 Qualidade Ar</b><br>${d.poluicao.list[0].main.aqi} AQI</div>
-                    <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure}hPa</div>
+                    <div class="c-item"><b>🍃 Ar (AQI)</b><br>${d.poluicao.list[0].main.aqi}</div>
                     <div class="c-item"><b>🌡️ Sensação</b><br>${Math.round(cur.feels_like)}°C</div>
-                    <div class="c-item"><b>🌅 Nascer do Sol</b><br>${formatSol(cur.sunrise)}</div>
-                    <div class="c-item"><b>🌇 Pôr do Sol</b><br>${formatSol(cur.sunset)}</div>
+                    <div class="c-item"><b>🌅 Nascer</b><br>${formatSol(cur.sunrise)}</div>
                 </div>
-
                 <div class="quadrado-dias">${htmlDias}</div>
-                ${infoCamada}
             `;
         });
 
-        // --- SISTEMA DE NEWS ---
-        async function abrirNews() {
-            toggleMenu();
-            const painel = document.getElementById('painel-full');
-            painel.className = 'news-view active';
-            const res = await fetch('/api/news');
-            const data = await res.json();
-            let h = "<h1>📰 CHASER NEWS</h1>";
-            data.forEach(n => h += `<div class="news-item" style="background:#111; padding:15px; margin:10px 0; border-left:4px solid #00ff99; text-align:left;"><small>${n.data}</small><h3>${n.titulo}</h3><p>${n.conteudo}</p></div>`);
-            document.getElementById('painel-content').innerHTML = h;
-        }
-
-        // --- SISTEMA DE LOGIN/PERFIL ---
+        // --- SISTEMA DE LOGIN COM SEGURANÇA MÁXIMA ---
         function abrirPerfil() {
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             const painel = document.getElementById('painel-full');
-            painel.className = 'auth-view active';
             
+            // Ativação do Terminal via Comando
+            if(user && user.isAdmin) {
+                let comando = prompt("SISTEMA BLOQUEADO. DIGITE O COMANDO DE ACESSO:");
+                if(comando === "abrir.terminal") {
+                    document.getElementById('terminal-criador').style.display = 'block';
+                    fecharPainel();
+                    return;
+                }
+            }
+
+            painel.className = 'auth-view active';
+
             if(!user) {
+                // CAMPOS NASCEM SEMPRE VAZIOS
                 document.getElementById('painel-content').innerHTML = `
-                    <h1>Acessar Conta</h1>
-                    <input type="email" id="log-email" class="auth-input" placeholder="E-mail">
-                    <input type="password" id="log-pass" class="auth-input" placeholder="Senha">
+                    <h1 style="color:#00ff99">CHASER MONITOR</h1>
+                    <p style="color:gray">Acesso Restrito</p>
+                    <input type="email" id="log-email" class="auth-input" placeholder="E-mail" autocomplete="off" value="">
+                    <input type="password" id="log-pass" class="auth-input" placeholder="Senha" autocomplete="off" value="">
                     <button class="btn-auth" onclick="realizarLogin()">ENTRAR</button>
-                    <button class="btn-auth" style="background:#333; color:white;" onclick="alert('Use o cadastro via API ou terminal')">CADASTRO</button>
                 `;
             } else {
                 document.getElementById('painel-content').innerHTML = `
                     <h1>Olá, ${user.nome}</h1>
                     <div class="analise-box">
-                        <p><b>Email:</b> ${user.email}</p>
                         <p><b>Cargo:</b> ${user.isAdmin ? 'Criador Master' : 'Chaser'}</p>
                     </div>
-                    <button class="btn-auth" style="background:red; color:white" onclick="logout()">SAIR</button>
+                    <button class="btn-auth" style="background:red; color:white" onclick="logout()">ENCERRAR SESSÃO</button>
                 `;
             }
         }
@@ -164,39 +145,54 @@
             const data = await res.json();
             if(data.sucesso) {
                 localStorage.setItem('chaser_session', JSON.stringify({
-                    nome: data.usuario.nome, 
-                    email: data.usuario.email, 
+                    nome: data.nome, 
+                    email: email, 
                     isAdmin: data.status === "CRIADOR_MASTER",
                     token: data.token
                 }));
                 location.reload();
-            } else { alert("Erro no login"); }
+            } else { alert("ACESSO NEGADO"); }
         }
 
+        // --- SISTEMA DE POSTAGEM GITHUB ---
+        async function enviarPostagem() {
+            const user = JSON.parse(localStorage.getItem('chaser_session'));
+            const titulo = document.getElementById('post-titulo').value;
+            const conteudo = document.getElementById('post-conteudo').value;
+
+            if(!titulo || !conteudo) return alert("Preencha tudo!");
+
+            const resNews = await fetch('/api/news');
+            let news = await resNews.json();
+            news.unshift({ id: Date.now(), titulo, conteudo, data: new Date().toLocaleDateString('pt-BR') });
+
+            const res = await fetch('/api/dev/github-control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ token_interno: user.token, arquivo: "news.json", conteudo: news })
+            });
+
+            if((await res.json()).sucesso) {
+                alert("SINCRONIZADO!");
+                location.reload();
+            } else { alert("ERRO NA SINCRONIZAÇÃO"); }
+        }
+
+        // --- FUNÇÕES DE SUPORTE ---
         function logout() { localStorage.removeItem('chaser_session'); location.reload(); }
+        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
 
-        // Restante das funções originais mantidas
-        async function renderizarIconesNosMapas() {
-            const res = await fetch('/api/alertas');
+        async function abrirNews() {
+            toggleMenu();
+            const res = await fetch('/api/news');
             const data = await res.json();
-            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
-                L.DomEvent.stopPropagation(ev); abrirPainelAlerta('🔅 INMET BRASIL', data.inmet);
-            });
-            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
-                L.DomEvent.stopPropagation(ev); abrirPainelAlerta('☁️ NOAA USA', data.noaa);
-            });
-        }
-
-        function abrirPainelAlerta(titulo, lista) {
-            const painel = document.getElementById('painel-full');
-            painel.className = 'alerta-view active';
-            let h = `<h1>${titulo}</h1>`;
-            lista.forEach(i => h += `<div class="analise-box"><h3>${i.title || i.properties.event}</h3><p>${i.description || i.properties.headline}</p></div>`);
+            document.getElementById('painel-full').className = 'news-view active';
+            let h = "<h1>📰 CHASER NEWS</h1>";
+            data.forEach(n => h += `<div class="analise-box" style="border-color:#00ff99"><small>${n.data}</small><h3>${n.titulo}</h3><p>${n.conteudo}</p></div>`);
             document.getElementById('painel-content').innerHTML = h;
         }
 
-        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
-        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
         async function buscarLocalizacao() {
             const q = document.getElementById('input-busca').value;
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
@@ -207,21 +203,34 @@
         function aplicarCamada(tipo) {
             camadaAtual = tipo;
             if(layerAtiva) map.removeLayer(layerAtiva);
-            document.getElementById('infra-legenda').style.display = (tipo === 'infra') ? 'block' : 'none';
             let url = "";
             if(tipo === 'clouds') url = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'infra') url = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'tempestades') url = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY_OWM}`;
             if(tipo === 'satelite_base') url = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'; 
-            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100 }).addTo(map);
+            if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8 }).addTo(map);
             toggleMenu();
         }
 
-        // Recuperar foto de perfil no load
+        async function renderizarIconesNosMapas() {
+            const res = await fetch('/api/alertas');
+            const data = await res.json();
+            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', () => {
+                abrirPainelAlerta('🔅 ALERTAS BRASIL', data.inmet);
+            });
+        }
+
+        function abrirPainelAlerta(titulo, lista) {
+            document.getElementById('painel-full').className = 'alerta-view active';
+            let h = `<h1>${titulo}</h1>`;
+            lista.forEach(i => h += `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`);
+            document.getElementById('painel-content').innerHTML = h;
+        }
+
         window.onload = () => {
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             if(user && user.foto) document.getElementById('user-avatar').style.backgroundImage = `url(${user.foto})`;
-        }
+        };
     </script>
 </body>
 </html>
