@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "chaser-radar-cloudwindz",
+  "private_key_id": "feae454485ef31abeb9d106184959238b88dba81",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDRG02GVxQjsjoK\nCRihK4dCmlnxLEpRqbTLjXX+P+7oX8Q2AHYSzjx7bx0S4XWV+JJHRZiV7YWkN2P9\n2lWzlVAVctIdR0TANSRnj2KryJhjPlR15CAVYv4+mUEVYDFnY4+ZycVqGsesoKz7\nS+PDn6mCEOtIwozq6/qNFATaPkbDiynRwxNMGjivEWvazCA3JT9yZ4MPZ32YFXRB\n4a8AWc9BgukEY73j1OHazJP4oxNRwN4jj6wqWYcbzWK7maibsdcldqnuJ0Amwpaz\ntYbitcdZMkGxCCORZ+21OOWd6FfG+SVTO1ikqO1PdOJKe4zoAUpwE++u+hEM462g\n+MJvPZ+ZAgMBAAECggEAROnhGlGPbxY5P35w8gjU6nPRCYUFtzUdQupLhS/PziBl\nm0B6qUbzsuBTLhpEtNi3aKq8l0iwvwaMOyieDvG581+kdIa81zWMWl7sb13MLwTn\nM/UrR7EYxkueoetSTNcIh+/x0j6iKLfJWoZPuXRgml92E0QeyftcVutOkBhvHNki\n9yYXeihakRlDYxGilXa44RfJOECMifL6lEkhNMtOo9jBeQue/SwDbXU1LSYQEUUD\nA4sAcMa9ebn6MEElJKS8eoudIGxRyltIYSQ2ZvNjdJnfI0HTD4CAmFYvLGpUhvv+\nGGTm4ukRIAtxP+AC7tVnS9Hext3bQwRJY3k/bhgxMwKBgQD1uhBQ7r8YQu6fGc4T\nySXBYllNijsmzPblQOAgiZ2qErckEz04g/vIoZIu+0hzV8ztbDCkM+7+5LDBpDe/\nO5tbhT76/EqtEDh9960tvOLUegZK8q70nPv4gl8AcMjNw039iEy7Oti3dlWSKKVW\n5+dX7KJR3EfwkxbT3LVTFUqSXwKBgQDZ2U4cWmgaSIVKL9IPvEN2pSd+N9fZh0lL\nCBjxId6gHe5MXHUiKf7RiHGgWXzpgaW1k6Qh5JZraGJLW7KEVvf3fSf9B54q7jpF\noJ3EugO6wWHQSrziZPxeoU2MLeTBpyoFBK8tEeoYnjzH/RQaGd12KhWjetke4hLS\n9EbosGbBBwKBgQCCg54Q7o4PG9XUKYecWLU1/r/CAI6kcC8e2xNwFMfqQmCFx7Y3\no1qDWNXlIFB9+v98h39aZ78kIWGEqG13o/hDZwVpl8EuJLRsq7WO2ol8I4feHQIy\nKINong5JlJ4DNB3jcJaYx4u9/hs7M12GSExHFgetBRwsumNgihTBGUjvbwKBgF6A\nxD/MgEiWmSvbntawptt7PaylcP+ujn78HkXMmZUAJvX9TdrqON6QwCn9aBCr60Tf\nrV3+mboyaCGkv8ZlK+Cy7Hv5qAWbnq/Bw28p+qAzb8k6AsJ7aHdspgVfi1Luv225\n4Hw+vzy6uEdRZD0GZ2nxS73FdxbMn7nfujsK+yhVAoGAYkqQ1cblu9AzScUjTHFZ\nHq7Wx6UMPR7VXm+lCtt6xy5wC2MPmShtk6gASq5wBcbPyFfQLzRIJQK7VfKN9B3i\nXS79nH/4DzwXx9EmjVV+ubkq7xHmMlujWdpFOhO48eMas+y5+K11bZZb53DhQe7f\nVVD0wj1yA1H+aFMovWLEToc=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@chaser-radar-cloudwindz.iam.gserviceaccount.com",
+  "client_id": "111629590880828092788",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40chaser-radar-cloudwindz.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
