@@ -3,15 +3,30 @@ const axios = require('axios');
 const xml2js = require('xml2js');
 const path = require('path');
 const fs = require('fs');
+const admin = require('firebase-admin'); // ADICIONADO: Firebase Admin
 const app = express();
+
+// --- CONFIGURAÇÃO FIREBASE (ADICIONADO) ---
+const serviceAccount = require("./firebase-key.json");
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 
 const OWM_KEY = "7609a59c493758162d9b0a6af2914e1f"; 
 
 // Token Master para validação interna entre Site e Servidor
 const MASTER_INTERNAL_TOKEN = "CHASER-ADMIN-SECURE-2026";
+const SEGREDO_URL = "watervalez.falixsrv.me"; // ADICIONADO: Chave de URL
 
 app.use(express.json()); 
 app.use(express.static(path.join(__dirname)));
+
+// --- FIREWALL DE SEGURANÇA (ADICIONADO: BLOQUEIA SE NÃO TIVER O SEGREDO NA URL) ---
+app.use((req, res, next) => {
+    const referer = req.headers.referer || "";
+    if (!referer.includes(SEGREDO_URL)) {
+        return res.status(403).json({ erro: "ACESSO NEGADO: Rede CloudWindz não autorizada." });
+    }
+    next();
+});
 
 // --- UTILITÁRIOS DE PERSISTÊNCIA ---
 const lerJSON = (arquivo, padrao) => {
@@ -61,37 +76,45 @@ app.get('/api/alertas', async (req, res) => {
     } catch (e) { res.json({ inmet: [], noaa: [] }); }
 });
 
-// --- [POST] api/login ---
+// --- [POST] api/login (BUSCA EM cadastro.json) ---
 app.post('/api/login', (req, res) => {
     const { email, senha } = req.body;
     if (email === "dev.creator11-54-22.2026" && senha === "lIlIlIlIIIl") {
         return res.json({ sucesso: true, status: "CRIADOR_MASTER", nome: "Dev Creator", token: MASTER_INTERNAL_TOKEN });
     }
-    const db = lerJSON('users.json', '{}');
+    const db = lerJSON('cadastro.json', '{}'); // ALTERADO PARA cadastro.json
+    const config = lerJSON('config-accounts.json', '{}'); // BUSCA FOTO ATUALIZADA
     if (db[email] && db[email].senha === senha) {
-        return res.json({ sucesso: true, usuario: { nome: db[email].nome, email: email, foto: db[email].foto } });
+        return res.json({ 
+            sucesso: true, 
+            usuario: { 
+                nome: config[email]?.nome || db[email].nome, 
+                email: email, 
+                foto: config[email]?.foto || db[email].foto 
+            } 
+        });
     }
     res.status(401).json({ sucesso: false });
 });
 
-// --- [POST] api/cadastro ---
+// --- [POST] api/cadastro (VINCULADO A cadastro.json) ---
 app.post('/api/cadastro', (req, res) => {
     const { email, senha, nome } = req.body;
-    let db = lerJSON('users.json', '{}');
+    let db = lerJSON('cadastro.json', '{}'); // VINCULADO A cadastro.json
     if (db[email]) return res.status(400).json({ erro: "E-mail já cadastrado" });
     db[email] = { senha, nome, foto: null };
-    salvarJSON('users.json', db);
+    salvarJSON('cadastro.json', db);
     res.json({ sucesso: true });
 });
 
-// --- [POST] api/config-accounts ---
+// --- [POST] api/config-accounts (VINCULADO A config-accounts.json) ---
 app.post('/api/config-accounts', (req, res) => {
     const { email, nome, foto } = req.body;
-    let db = lerJSON('users.json', '{}');
-    if (!db[email]) return res.status(404).send();
+    let db = lerJSON('config-accounts.json', '{}'); // VINCULADO A config-accounts.json
+    if (!db[email]) db[email] = {}; // Cria se não existir
     if (nome) db[email].nome = nome;
     if (foto) db[email].foto = foto;
-    salvarJSON('users.json', db);
+    salvarJSON('config-accounts.json', db);
     res.json({ sucesso: true });
 });
 
@@ -108,7 +131,7 @@ app.post('/api/news/postar', (req, res) => {
     res.json({ sucesso: true });
 });
 
-// --- [POST] api/dev/github-control (Sincronização Master) ---
+// --- [POST] api/dev/github-control (Sincronização Master - MANTIDO INTEGRALMENTE) ---
 app.post('/api/dev/github-control', async (req, res) => {
     const { token_interno, arquivo, conteudo } = req.body;
     const GH_PAT = process.env.GITHUB_PAT;
@@ -120,7 +143,7 @@ app.post('/api/dev/github-control', async (req, res) => {
     try {
         const url = `https://api.github.com/repos/${REPO}/contents/${arquivo}`;
         const headers = { Authorization: `token ${GH_PAT}`, Accept: 'application/vnd.github.v3+json' };
-        
+
         let sha = null;
         try {
             const { data } = await axios.get(url, { headers });
@@ -138,4 +161,4 @@ app.post('/api/dev/github-control', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Master Server Rodando na ${PORT}`));
+app.listen(PORT, () => console.log(`Master Server Rodando na ${PORT} com Firewall Minecraft`));
