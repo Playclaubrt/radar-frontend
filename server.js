@@ -3,29 +3,33 @@ const axios = require('axios');
 const xml2js = require('xml2js');
 const path = require('path');
 const fs = require('fs');
-const admin = require('firebase-admin'); // ADICIONADO: Firebase Admin
+const admin = require('firebase-admin'); 
 const app = express();
 
-// --- CONFIGURAÇÃO FIREBASE (ADICIONADO) ---
-const serviceAccount = require("./firebase-key.json");
-admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+// --- CONFIGURAÇÃO FIREBASE ---
+// Verifique se o arquivo firebase-key.json está na raiz do projeto!
+try {
+    const serviceAccount = require("./firebase-key.json");
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+} catch (e) {
+    console.error("ERRO CRÍTICO: firebase-key.json não encontrado!");
+}
 
 const OWM_KEY = "7609a59c493758162d9b0a6af2914e1f"; 
-
-// Token Master para validação interna entre Site e Servidor
 const MASTER_INTERNAL_TOKEN = "CHASER-ADMIN-SECURE-2026";
-const SEGREDO_URL = "watervalez.falixsrv.me"; // ADICIONADO: Chave de URL
+const SEGREDO_URL = "watervalez.falixsrv.me";
 
 app.use(express.json()); 
 app.use(express.static(path.join(__dirname)));
 
-// --- FIREWALL DE SEGURANÇA (ADICIONADO: BLOQUEIA SE NÃO TIVER O SEGREDO NA URL) ---
+// --- FIREWALL UNIVERSAL (Ajustado para não bloquear o próprio Render) ---
 app.use((req, res, next) => {
     const referer = req.headers.referer || "";
-    if (!referer.includes(SEGREDO_URL)) {
-        return res.status(403).json({ erro: "ACESSO NEGADO: Rede CloudWindz não autorizada." });
+    // Permite se vier da sua URL, se for o próprio Render ou se for acesso direto (opcional)
+    if (referer.includes(SEGREDO_URL) || referer.includes("render.com") || req.path.startsWith('/api/news')) {
+        return next();
     }
-    next();
+    return res.status(403).json({ erro: "ACESSO NEGADO: Rede CloudWindz não autorizada." });
 });
 
 // --- UTILITÁRIOS DE PERSISTÊNCIA ---
@@ -42,10 +46,9 @@ const salvarJSON = (arquivo, obj) => {
     fs.writeFileSync(path.join(__dirname, arquivo), JSON.stringify(obj, null, 2));
 };
 
-// --- [GET] api/clima-clique ---
+// --- ROTAS DE CLIMA E ALERTAS ---
 app.get('/api/clima-clique', async (req, res) => {
     const { lat, lon } = req.query;
-    if (!lat || !lon) return res.status(400).send();
     try {
         const [clima, geo, pol, meteo] = await Promise.all([
             axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${OWM_KEY}`),
@@ -57,33 +60,52 @@ app.get('/api/clima-clique', async (req, res) => {
     } catch (e) { res.status(500).json({erro: e.message}); }
 });
 
-// --- [GET] api/alertas ---
 app.get('/api/alertas', async (req, res) => {
     try {
         const [resInmet, resNoaa] = await Promise.allSettled([
-            axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/'),
-            axios.get('https://api.weather.gov/alerts/active?status=actual', { headers: { 'User-Agent': 'Chaser' }})
+            axios.get('https://apiprevmet3.inmet.gov.br/avisos/rss/', { timeout: 4000 }),
+            axios.get('https://api.weather.gov/alerts/active?status=actual', { headers: { 'User-Agent': 'Chaser' }, timeout: 4000 })
         ]);
         let inmet = [];
         if (resInmet.status === 'fulfilled') {
             const parser = new xml2js.Parser();
             const result = await parser.parseStringPromise(resInmet.value.data);
-            if (result.rss.channel[0].item) {
+            if (result && result.rss && result.rss.channel[0].item) {
                 inmet = result.rss.channel[0].item.map(i => ({ title: i.title[0], description: i.description[0] }));
             }
         }
-        res.json({ inmet, noaa: resNoaa.status === 'fulfilled' ? resNoaa.value.data.features : [] });
+        res.json({ inmet, noaa: resNoaa.status === 'fulfilled' ? (resNoaa.value.data.features || []) : [] });
     } catch (e) { res.json({ inmet: [], noaa: [] }); }
 });
 
-// --- [POST] api/login (BUSCA EM cadastro.json) ---
+// --- SISTEMA DE CONTAS E CONFIGURAÇÕES ---
+
+app.post('/api/cadastro', (req, res) => {
+    const { email, senha, nome } = req.body;
+    let db = lerJSON('cadastro.json', '{}');
+    if (db[email]) return res.status(400).json({ erro: "E-mail já cadastrado" });
+    db[email] = { senha, nome, foto: "https://via.placeholder.com/150" };
+    salvarJSON('cadastro.json', db);
+    res.json({ sucesso: true });
+});
+
+app.post('/api/config-accounts', (req, res) => {
+    const { email, nome, foto } = req.body;
+    let db = lerJSON('config-accounts.json', '{}');
+    if (!db[email]) db[email] = {};
+    if (nome) db[email].nome = nome;
+    if (foto) db[email].foto = foto;
+    salvarJSON('config-accounts.json', db);
+    res.json({ sucesso: true });
+});
+
 app.post('/api/login', (req, res) => {
     const { email, senha } = req.body;
     if (email === "dev.creator11-54-22.2026" && senha === "lIlIlIlIIIl") {
         return res.json({ sucesso: true, status: "CRIADOR_MASTER", nome: "Dev Creator", token: MASTER_INTERNAL_TOKEN });
     }
-    const db = lerJSON('cadastro.json', '{}'); // ALTERADO PARA cadastro.json
-    const config = lerJSON('config-accounts.json', '{}'); // BUSCA FOTO ATUALIZADA
+    const db = lerJSON('cadastro.json', '{}');
+    const config = lerJSON('config-accounts.json', '{}');
     if (db[email] && db[email].senha === senha) {
         return res.json({ 
             sucesso: true, 
@@ -97,31 +119,10 @@ app.post('/api/login', (req, res) => {
     res.status(401).json({ sucesso: false });
 });
 
-// --- [POST] api/cadastro (VINCULADO A cadastro.json) ---
-app.post('/api/cadastro', (req, res) => {
-    const { email, senha, nome } = req.body;
-    let db = lerJSON('cadastro.json', '{}'); // VINCULADO A cadastro.json
-    if (db[email]) return res.status(400).json({ erro: "E-mail já cadastrado" });
-    db[email] = { senha, nome, foto: null };
-    salvarJSON('cadastro.json', db);
-    res.json({ sucesso: true });
-});
+// --- NEWS E GITHUB CONTROL ---
 
-// --- [POST] api/config-accounts (VINCULADO A config-accounts.json) ---
-app.post('/api/config-accounts', (req, res) => {
-    const { email, nome, foto } = req.body;
-    let db = lerJSON('config-accounts.json', '{}'); // VINCULADO A config-accounts.json
-    if (!db[email]) db[email] = {}; // Cria se não existir
-    if (nome) db[email].nome = nome;
-    if (foto) db[email].foto = foto;
-    salvarJSON('config-accounts.json', db);
-    res.json({ sucesso: true });
-});
-
-// --- [GET] api/news ---
 app.get('/api/news', (req, res) => res.json(lerJSON('news.json', '[]')));
 
-// --- [POST] api/news/postar ---
 app.post('/api/news/postar', (req, res) => {
     const { token, titulo, conteudo } = req.body;
     if (token !== MASTER_INTERNAL_TOKEN) return res.status(403).send();
@@ -131,7 +132,6 @@ app.post('/api/news/postar', (req, res) => {
     res.json({ sucesso: true });
 });
 
-// --- [POST] api/dev/github-control (Sincronização Master - MANTIDO INTEGRALMENTE) ---
 app.post('/api/dev/github-control', async (req, res) => {
     const { token_interno, arquivo, conteudo } = req.body;
     const GH_PAT = process.env.GITHUB_PAT;
@@ -143,7 +143,6 @@ app.post('/api/dev/github-control', async (req, res) => {
     try {
         const url = `https://api.github.com/repos/${REPO}/contents/${arquivo}`;
         const headers = { Authorization: `token ${GH_PAT}`, Accept: 'application/vnd.github.v3+json' };
-
         let sha = null;
         try {
             const { data } = await axios.get(url, { headers });
@@ -161,4 +160,4 @@ app.post('/api/dev/github-control', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Master Server Rodando na ${PORT} com Firewall Minecraft`));
+app.listen(PORT, () => console.log(`Server Online: Porta ${PORT}`));
