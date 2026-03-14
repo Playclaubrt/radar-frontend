@@ -1,12 +1,26 @@
 {
   "name": "chaser-v3-final",
   "version": "3.0.0",
+  "description": "Monitor Chaser Radar - CloudWindz Network",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "chaser",
+    "radar",
+    "weather"
+  ],
+  "author": "Dev Creator",
+  "license": "ISC",
   "dependencies": {
-  "express": "^4.18.2",
-  "axios": "^1.6.0",
-  "xml2js": "^0.6.2",
-  "firebase-admin": "^11.11.0"
-   }
+    "axios": "^1.6.7",
+    "express": "^4.18.3",
+    "firebase-admin": "^12.0.0",
+    "xml2js": "^0.6.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
