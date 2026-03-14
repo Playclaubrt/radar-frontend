@@ -17,7 +17,7 @@
     <div id="container-controles">
         <button id="btn-menu" onclick="toggleMenu()"><div class="bar"></div><div class="bar"></div><div class="bar"></div></button>
         <button id="btn-ativar-alertas" onclick="renderizarIconesNosMapas()">🔅 ALERTAS ☁️</button>
-        <div id="user-avatar" onclick="abrirPerfil()" style="width: 50px; height: 50px; background: #111; border-radius: 50%; border: 2px solid #00ff99; cursor: pointer; background-size: cover; margin-top:10px; background-position: center;"></div>
+        <div id="user-avatar" onclick="abrirPerfil()" style="width: 50px; height: 50px; background: #111; border-radius: 50%; border: 2px solid #00ff99; cursor: pointer; background-size: cover; margin-top:10px;"></div>
     </div>
 
     <div id="menu-lateral">
@@ -152,7 +152,7 @@
                     <input type="email" id="log-email" class="auth-input" placeholder="E-mail" autocomplete="off">
                     <input type="password" id="log-pass" class="auth-input" placeholder="Senha" autocomplete="off">
                     <button class="btn-auth" onclick="realizarLogin()">ENTRAR</button>
-                    <button class="btn-auth" style="background:#333; color:white;" onclick="renderizarCadastro()">CRIAR CONTA</button>
+                    <button class="btn-auth" style="background:#333; color:white;" onclick="alert('Cadastro via API/Terminal')">CADASTRO</button>
                 `;
             } else {
                 document.getElementById('painel-content').innerHTML = `
@@ -161,64 +161,9 @@
                         <p><b>Email:</b> ${user.email}</p>
                         <p><b>Cargo:</b> ${user.isAdmin ? 'Criador Master' : 'Chaser'}</p>
                     </div>
-                    <button class="btn-auth" style="background:#00ff99; color:black; margin-bottom:10px;" onclick="renderizarEditPerfil()">EDITAR PERFIL</button>
                     <button class="btn-auth" style="background:red; color:white" onclick="logout()">SAIR</button>
                 `;
             }
-        }
-
-        function renderizarEditPerfil() {
-            const user = JSON.parse(localStorage.getItem('chaser_session'));
-            document.getElementById('painel-content').innerHTML = `
-                <h1>Configurações</h1>
-                <input type="text" id="edit-nome" class="auth-input" placeholder="Novo Nome" value="${user.nome}">
-                <input type="text" id="edit-foto" class="auth-input" placeholder="URL da Foto (Avatar)">
-                <button class="btn-auth" onclick="salvarConfig()">SALVAR E SINCRONIZAR</button>
-                <button class="btn-auth" style="background:#333;" onclick="abrirPerfil()">VOLTAR</button>
-            `;
-        }
-
-        async function salvarConfig() {
-            const user = JSON.parse(localStorage.getItem('chaser_session'));
-            const nome = document.getElementById('edit-nome').value;
-            const foto = document.getElementById('edit-foto').value;
-            
-            const res = await fetch('/api/config-accounts', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ email: user.email, nome, foto })
-            });
-            
-            if(res.ok) {
-                user.nome = nome;
-                user.foto = foto;
-                localStorage.setItem('chaser_session', JSON.stringify(user));
-                alert("PERFIL ATUALIZADO NO GITHUB!");
-                location.reload();
-            }
-        }
-
-        function renderizarCadastro() {
-            document.getElementById('painel-content').innerHTML = `
-                <h1>Nova Conta</h1>
-                <input type="text" id="cad-nome" class="auth-input" placeholder="Seu Nome">
-                <input type="email" id="cad-email" class="auth-input" placeholder="E-mail">
-                <input type="password" id="cad-pass" class="auth-input" placeholder="Senha">
-                <button class="btn-auth" onclick="realizarCadastro()">CADASTRAR</button>
-                <button class="btn-auth" style="background:#333;" onclick="abrirPerfil()">VOLTAR</button>
-            `;
-        }
-
-        async function realizarCadastro() {
-            const nome = document.getElementById('cad-nome').value;
-            const email = document.getElementById('cad-email').value;
-            const senha = document.getElementById('cad-pass').value;
-            const res = await fetch('/api/cadastro', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ nome, email, senha })
-            });
-            if(res.ok) { alert("CONTA CRIADA!"); abrirPerfil(); }
         }
 
         async function realizarLogin() {
@@ -232,11 +177,10 @@
             const data = await res.json();
             if(data.sucesso) {
                 localStorage.setItem('chaser_session', JSON.stringify({
-                    nome: data.usuario.nome, 
-                    email: data.usuario.email, 
+                    nome: data.nome, 
+                    email: email, 
                     isAdmin: data.status === "CRIADOR_MASTER",
-                    token: data.token,
-                    foto: data.usuario.foto
+                    token: data.token
                 }));
                 location.reload();
             } else { alert("Erro no login"); }
@@ -246,15 +190,20 @@
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             const titulo = document.getElementById('post-titulo').value;
             const conteudo = document.getElementById('post-conteudo').value;
+            if(!titulo || !conteudo) return alert("Preencha tudo!");
+
             const resNews = await fetch('/api/news');
             let news = await resNews.json();
             news.unshift({ id: Date.now(), titulo, conteudo, data: new Date().toLocaleDateString('pt-BR') });
+
             const res = await fetch('/api/dev/github-control', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ token_interno: user.token, arquivo: "news.json", conteudo: news })
             });
-            if((await res.json()).sucesso) { alert("PUSH REALIZADO!"); location.reload(); }
+            const data = await res.json();
+            if(data.sucesso) { alert("GITHUB ATUALIZADO!"); location.reload(); }
+            else { alert("ERRO: " + data.erro); }
         }
 
         function logout() { localStorage.removeItem('chaser_session'); location.reload(); }
