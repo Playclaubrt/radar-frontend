@@ -58,6 +58,12 @@
         let camadaAtual = 'default';
         let layerAtiva = null;
 
+        // --- SOLUÇÃO PROBLEMA 3: HEADERS DE SEGURANÇA ---
+        const getAuthHeaders = () => ({
+            'Content-Type': 'application/json',
+            'Referer': 'https://watervalez.falixsrv.me'
+        });
+
         const getEmoji = (code) => {
             if(code <= 1) return "🌞"; if(code <= 3) return "🌤️"; if(code <= 48) return "🌫️";
             if(code <= 55) return "🌧️"; if(code <= 67) return "🌨️"; if(code <= 82) return "🌧️";
@@ -75,10 +81,8 @@
             painel.className = 'clima-view active';
 
             try {
-                const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`, { headers: getAuthHeaders() });
                 const d = await res.json();
-                
-                // Correção de Undefineds garantindo valores padrão
                 const cur = d.clima?.current || {};
                 const h = d.extra?.hourly || { precipitation: [0], cloud_base: [0], wind_speed_10m: [0] };
                 const daily = d.extra?.daily || { weathercode: [0], temperature_2m_max: [0] };
@@ -126,14 +130,13 @@
             toggleMenu();
             const painel = document.getElementById('painel-full');
             painel.className = 'news-view active';
-            const res = await fetch('/api/news');
+            const res = await fetch('/api/news', { headers: getAuthHeaders() });
             const data = await res.json();
             let h = "<h1>📰 CHASER NEWS</h1>";
             data.forEach(n => h += `<div class="news-item" style="background:#111; padding:15px; margin:10px 0; border-left:4px solid #00ff99; text-align:left;"><small>${n.data}</small><h3>${n.titulo}</h3><p>${n.conteudo}</p></div>`);
             document.getElementById('painel-content').innerHTML = h;
         }
 
-        // --- SISTEMA DE PERFIL REFEITO ---
         function abrirPerfil() {
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             const painel = document.getElementById('painel-full');
@@ -148,9 +151,7 @@
                     <button class="btn-auth" style="background:#333; color:white;" onclick="telaCadastro()">CRIAR CONTA</button>
                 `;
             } else {
-                // Tabela de Opções Baseada no Cargo
                 let devBtn = user.isAdmin ? `<button class="btn-auth" style="background:#00ff99; color:black" onclick="acessarDev()">DEVELOPER MODE</button>` : "";
-                
                 document.getElementById('painel-content').innerHTML = `
                     <div id="perfil-header">
                         <div id="foto-preview-perfil" style="width:100px; height:100px; border-radius:50%; border:3px solid #00ff99; margin:0 auto 20px; background-image:url('${user.foto || ''}'); background-size:cover; background-position:center; background-color:#111;"></div>
@@ -179,12 +180,8 @@
                 <button class="btn-auth" onclick="salvarAlteracoes()">SALVAR ALTERAÇÕES</button>
                 <button class="btn-auth" style="background:none; color:gray" onclick="abrirPerfil()">CANCELAR</button>
             `;
-
             const dz = document.getElementById('drop-zone');
-            dz.addEventListener('drop', (e) => {
-                e.preventDefault();
-                handleFileUpload(e.dataTransfer.files[0]);
-            });
+            dz.addEventListener('drop', (e) => { e.preventDefault(); handleFileUpload(e.dataTransfer.files[0]); });
         }
 
         function handleFileUpload(file) {
@@ -206,7 +203,7 @@
 
             const res = await fetch('/api/config-accounts', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ email: user.email, nome: novoNome, foto: novaFoto })
             });
 
@@ -214,7 +211,7 @@
                 user.nome = novoNome;
                 user.foto = novaFoto;
                 localStorage.setItem('chaser_session', JSON.stringify(user));
-                alert("Perfil Atualizado!");
+                alert("Perfil Atualizado no Servidor e GitHub!");
                 location.reload();
             }
         }
@@ -232,7 +229,7 @@
             const senha = document.getElementById('log-pass').value;
             const res = await fetch('/api/login', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ email, senha })
             });
             const data = await res.json();
@@ -266,24 +263,23 @@
             const senha = document.getElementById('cad-pass').value;
             const res = await fetch('/api/cadastro', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ email, senha, nome })
             });
-            if(res.ok) { alert("Conta criada! Agora faça login."); abrirPerfil(); }
+            if(res.ok) { alert("Conta sincronizada com GitHub! Faça login."); abrirPerfil(); }
             else { alert("Erro ao cadastrar."); }
         }
 
-        // Funções Originais Mantidas
         async function enviarPostagem() {
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             const titulo = document.getElementById('post-titulo').value;
             const conteudo = document.getElementById('post-conteudo').value;
-            const resNews = await fetch('/api/news');
+            const resNews = await fetch('/api/news', { headers: getAuthHeaders() });
             let news = await resNews.json();
             news.unshift({ id: Date.now(), titulo, conteudo, data: new Date().toLocaleDateString('pt-BR') });
             const res = await fetch('/api/dev/github-control', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ token_interno: user.token, arquivo: "news.json", conteudo: news })
             });
             if(res.ok) { alert("PUSH REALIZADO!"); location.reload(); }
@@ -294,10 +290,19 @@
         function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
 
         async function renderizarIconesNosMapas() {
-            const res = await fetch('/api/alertas');
+            const res = await fetch('/api/alertas', { headers: getAuthHeaders() });
             const data = await res.json();
+            
+            // --- SOLUÇÃO PROBLEMA 1: NOAA INTEGRADO ---
+            // Ícone INMET
             L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
                 L.DomEvent.stopPropagation(ev); abrirPainelAlerta('🔅 INMET BRASIL', data.inmet);
+            });
+
+            // Ícone NOAA (Localizado em Washington para representar os EUA)
+            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
+                L.DomEvent.stopPropagation(ev); 
+                abrirPainelAlerta('☁️ NOAA ALERTAS USA', data.noaa);
             });
         }
 
@@ -305,7 +310,8 @@
             const painel = document.getElementById('painel-full');
             painel.className = 'alerta-view active';
             let h = `<h1>${titulo}</h1>`;
-            lista.forEach(i => h += `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`);
+            if(!lista || lista.length === 0) h += "<p>Sem alertas ativos no momento.</p>";
+            else lista.forEach(i => h += `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`);
             document.getElementById('painel-content').innerHTML = h;
         }
 
