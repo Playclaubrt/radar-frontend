@@ -17,7 +17,7 @@
     <div id="container-controles">
         <button id="btn-menu" onclick="toggleMenu()"><div class="bar"></div><div class="bar"></div><div class="bar"></div></button>
         <button id="btn-ativar-alertas" onclick="renderizarIconesNosMapas()">🔅 ALERTAS ☁️</button>
-        <div id="user-avatar" onclick="abrirPerfil()" style="width: 50px; height: 50px; background: #111; border-radius: 50%; border: 2px solid #00ff99; cursor: pointer; background-size: cover; margin-top:10px;"></div>
+        <div id="user-avatar" onclick="abrirPerfil()" style="width: 50px; height: 50px; background: #111; border-radius: 50%; border: 2px solid #00ff99; cursor: pointer; background-size: cover; margin-top:10px; background-position: center;"></div>
     </div>
 
     <div id="menu-lateral">
@@ -74,50 +74,52 @@
             const painel = document.getElementById('painel-full');
             painel.className = 'clima-view active';
 
-            const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
-            const d = await res.json();
-            const cur = d.clima.current;
-            const h = d.extra.hourly;
-            const daily = d.extra.daily;
+            try {
+                const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                const d = await res.json();
+                
+                // Correção de Undefineds garantindo valores padrão
+                const cur = d.clima?.current || {};
+                const h = d.extra?.hourly || { precipitation: [0], cloud_base: [0], wind_speed_10m: [0] };
+                const daily = d.extra?.daily || { weathercode: [0], temperature_2m_max: [0] };
 
-            let infoCamada = "";
-            if(camadaAtual === 'tempestades') {
-                infoCamada = `<div class="analise-box"><h3>⛈️ RADAR</h3><p><b>Tipo:</b> ${cur.temp > 2 ? 'Chuva' : 'Neve'}</p><p><b>mm/s:</b> ${h.precipitation[0]} mm/s</p><p><b>Direção:</b> ${cur.wind_deg}°</p></div>`;
-            } else if(camadaAtual === 'clouds') {
-                infoCamada = `<div class="analise-box"><h3>☁️ NUVENS TÉCNICAS</h3><p><b>Tipo:</b> ${getNuvemNome(d.extra.daily.weathercode[0])}</p><p><b>Altura:</b> ${h.cloud_base[0] > 2000 ? 'Alto' : 'Baixo'} (${h.cloud_base[0] || 0}m)</p><p><b>Velocidade:</b> ${h.wind_speed_10m[0]} km/h</p></div>`;
-            } else if(camadaAtual === 'infra') {
-                infoCamada = `<div class="analise-box"><h3>🌡️ INFRA</h3><p><b>Cor:</b> ${cur.temp > 20 ? 'Quente' : 'Frio'}</p><p><b>Topo:</b> Emissão Térmica</p><p><b>Reflexo:</b> Ativo</p></div>`;
-            } else if(camadaAtual === 'satelite_base') {
-                infoCamada = `<div class="analise-box"><h3>🛰️ SATÉLITE</h3><p><b>Albedo:</b> Refletância Visível</p><p><b>Sensor:</b> Orbital</p></div>`;
-            }
+                let infoCamada = "";
+                if(camadaAtual === 'tempestades') {
+                    infoCamada = `<div class="analise-box"><h3>⛈️ RADAR</h3><p><b>Tipo:</b> ${cur.temp > 2 ? 'Chuva' : 'Neve'}</p><p><b>mm/s:</b> ${h.precipitation[0] || 0} mm/s</p><p><b>Direção:</b> ${cur.wind_deg || 0}°</p></div>`;
+                } else if(camadaAtual === 'clouds') {
+                    infoCamada = `<div class="analise-box"><h3>☁️ NUVENS TÉCNICAS</h3><p><b>Tipo:</b> ${getNuvemNome(daily.weathercode[0])}</p><p><b>Altura:</b> ${h.cloud_base[0] > 2000 ? 'Alto' : 'Baixo'} (${h.cloud_base[0] || 0}m)</p><p><b>Velocidade:</b> ${h.wind_speed_10m[0] || 0} km/h</p></div>`;
+                } else if(camadaAtual === 'infra') {
+                    infoCamada = `<div class="analise-box"><h3>🌡️ INFRA</h3><p><b>Cor:</b> ${cur.temp > 20 ? 'Quente' : 'Frio'}</p><p><b>Topo:</b> Emissão Térmica</p></div>`;
+                }
 
-            const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
-            const hoje = new Date();
-            let htmlDias = "";
-            for(let i=0; i<7; i++) {
-                let dIdx = (hoje.getDay() + i) % 7;
-                htmlDias += `<div class="dia-col"><b>${diasSemana[dIdx]}</b>${getEmoji(daily.weathercode[i])}<br><small>${Math.round(daily.temperature_2m_max[i])}°</small></div>`;
-            }
+                const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+                const hoje = new Date();
+                let htmlDias = "";
+                for(let i=0; i<7; i++) {
+                    let dIdx = (hoje.getDay() + i) % 7;
+                    htmlDias += `<div class="dia-col"><b>${diasSemana[dIdx]}</b>${getEmoji(daily.weathercode[i])}<br><small>${Math.round(daily.temperature_2m_max[i] || 0)}°</small></div>`;
+                }
 
-            const formatSol = (ts) => new Date(ts * 1000).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                const formatSol = (ts) => ts ? new Date(ts * 1000).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : "--:--";
 
-            document.getElementById('painel-content').innerHTML = `
-                <h1>${d.geo.address.city || d.geo.address.town || "Localização"}</h1>
-                <div class="temp-txt">${Math.round(cur.temp)}°C</div>
-                <div style="margin-bottom:20px">${getEmoji(daily.weathercode[0])} ${new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})} 👾</div>
-                <div class="clima-grid">
-                    <div class="c-item"><b>👁️ Visibilidade</b><br>${cur.visibility / 1000}km</div>
-                    <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity}%</div>
-                    <div class="c-item"><b>🌬️ Ventos</b><br>${cur.wind_speed}km/h</div>
-                    <div class="c-item"><b>🍃 Qualidade Ar</b><br>${d.poluicao.list[0].main.aqi} AQI</div>
-                    <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure}hPa</div>
-                    <div class="c-item"><b>🌡️ Sensação</b><br>${Math.round(cur.feels_like)}°C</div>
-                    <div class="c-item"><b>🌅 Nascer do Sol</b><br>${formatSol(cur.sunrise)}</div>
-                    <div class="c-item"><b>🌇 Pôr do Sol</b><br>${formatSol(cur.sunset)}</div>
-                </div>
-                <div class="quadrado-dias">${htmlDias}</div>
-                ${infoCamada}
-            `;
+                document.getElementById('painel-content').innerHTML = `
+                    <h1>${d.geo?.address?.city || d.geo?.address?.town || "Localização"}</h1>
+                    <div class="temp-txt">${Math.round(cur.temp || 0)}°C</div>
+                    <div style="margin-bottom:20px">${getEmoji(daily.weathercode[0])} ${new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})} 👾</div>
+                    <div class="clima-grid">
+                        <div class="c-item"><b>👁️ Visibilidade</b><br>${(cur.visibility || 0) / 1000}km</div>
+                        <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity || 0}%</div>
+                        <div class="c-item"><b>🌬️ Ventos</b><br>${d.clima?.wind?.speed || 0}km/h</div>
+                        <div class="c-item"><b>🍃 Qualidade Ar</b><br>${d.poluicao?.list[0]?.main?.aqi || 0} AQI</div>
+                        <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure || 0}hPa</div>
+                        <div class="c-item"><b>🌡️ Sensação</b><br>${Math.round(cur.feels_like || 0)}°C</div>
+                        <div class="c-item"><b>🌅 Nascer do Sol</b><br>${formatSol(cur.sunrise)}</div>
+                        <div class="c-item"><b>🌇 Pôr do Sol</b><br>${formatSol(cur.sunset)}</div>
+                    </div>
+                    <div class="quadrado-dias">${htmlDias}</div>
+                    ${infoCamada}
+                `;
+            } catch(e) { console.error(e); }
         });
 
         async function abrirNews() {
@@ -131,39 +133,98 @@
             document.getElementById('painel-content').innerHTML = h;
         }
 
+        // --- SISTEMA DE PERFIL REFEITO ---
         function abrirPerfil() {
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             const painel = document.getElementById('painel-full');
-
-            if(user && user.isAdmin) {
-                let comando = prompt("SISTEMA BLOQUEADO. DIGITE O COMANDO DE ACESSO:");
-                if(comando === "abrir.terminal") {
-                    document.getElementById('terminal-criador').style.display = 'block';
-                    fecharPainel();
-                    return;
-                }
-            }
-
             painel.className = 'auth-view active';
 
             if(!user) {
                 document.getElementById('painel-content').innerHTML = `
                     <h1>Acessar Conta</h1>
-                    <input type="email" id="log-email" class="auth-input" placeholder="E-mail" autocomplete="off">
-                    <input type="password" id="log-pass" class="auth-input" placeholder="Senha" autocomplete="off">
+                    <input type="email" id="log-email" class="auth-input" placeholder="E-mail">
+                    <input type="password" id="log-pass" class="auth-input" placeholder="Senha">
                     <button class="btn-auth" onclick="realizarLogin()">ENTRAR</button>
-                    <button class="btn-auth" style="background:#333; color:white;" onclick="alert('Cadastro via API/Terminal')">CADASTRO</button>
+                    <button class="btn-auth" style="background:#333; color:white;" onclick="telaCadastro()">CRIAR CONTA</button>
                 `;
             } else {
+                // Tabela de Opções Baseada no Cargo
+                let devBtn = user.isAdmin ? `<button class="btn-auth" style="background:#00ff99; color:black" onclick="acessarDev()">DEVELOPER MODE</button>` : "";
+                
                 document.getElementById('painel-content').innerHTML = `
-                    <h1>Olá, ${user.nome}</h1>
-                    <div class="analise-box">
-                        <p><b>Email:</b> ${user.email}</p>
-                        <p><b>Cargo:</b> ${user.isAdmin ? 'Criador Master' : 'Chaser'}</p>
+                    <div id="perfil-header">
+                        <div id="foto-preview-perfil" style="width:100px; height:100px; border-radius:50%; border:3px solid #00ff99; margin:0 auto 20px; background-image:url('${user.foto || ''}'); background-size:cover; background-position:center; background-color:#111;"></div>
+                        <h1>${user.nome}</h1>
+                        <p style="color:#00ff99">${user.isAdmin ? 'CRIADOR MASTER' : 'CHASER MEMBER'}</p>
                     </div>
-                    <button class="btn-auth" style="background:red; color:white" onclick="logout()">SAIR</button>
+                    <div class="tabela-opcoes">
+                        <button class="btn-auth" style="background:#222; color:white" onclick="telaEditarPerfil()">EDITAR PERFIL</button>
+                        ${devBtn}
+                        <button class="btn-auth" style="background:#ff4444; color:white" onclick="logout()">LOG-OUT</button>
+                    </div>
                 `;
             }
+        }
+
+        function telaEditarPerfil() {
+            const user = JSON.parse(localStorage.getItem('chaser_session'));
+            document.getElementById('painel-content').innerHTML = `
+                <h1>Editar Perfil</h1>
+                <div id="drop-zone" ondragover="event.preventDefault()" onclick="document.getElementById('file-input').click()">
+                    <p>Puxe e Solte sua Foto aqui</p>
+                    <small>PNG, JPG</small>
+                    <input type="file" id="file-input" style="display:none" accept="image/*" onchange="handleFileUpload(this.files[0])">
+                </div>
+                <input type="text" id="edit-nome" class="auth-input" value="${user.nome}" placeholder="Novo Nome">
+                <button class="btn-auth" onclick="salvarAlteracoes()">SALVAR ALTERAÇÕES</button>
+                <button class="btn-auth" style="background:none; color:gray" onclick="abrirPerfil()">CANCELAR</button>
+            `;
+
+            const dz = document.getElementById('drop-zone');
+            dz.addEventListener('drop', (e) => {
+                e.preventDefault();
+                handleFileUpload(e.dataTransfer.files[0]);
+            });
+        }
+
+        function handleFileUpload(file) {
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result;
+                document.getElementById('drop-zone').style.backgroundImage = `url(${base64})`;
+                document.getElementById('drop-zone').style.backgroundSize = "cover";
+                window.temp_base64 = base64;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function salvarAlteracoes() {
+            const user = JSON.parse(localStorage.getItem('chaser_session'));
+            const novoNome = document.getElementById('edit-nome').value;
+            const novaFoto = window.temp_base64 || user.foto;
+
+            const res = await fetch('/api/config-accounts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email: user.email, nome: novoNome, foto: novaFoto })
+            });
+
+            if(res.ok) {
+                user.nome = novoNome;
+                user.foto = novaFoto;
+                localStorage.setItem('chaser_session', JSON.stringify(user));
+                alert("Perfil Atualizado!");
+                location.reload();
+            }
+        }
+
+        function acessarDev() {
+            let senha = prompt("ACESSO RESTRITO. DIGITE A SENHA DO TERMINAL:");
+            if(senha === "abrir.terminal") {
+                document.getElementById('terminal-criador').style.display = 'block';
+                fecharPainel();
+            } else { alert("ACESSO NEGADO."); }
         }
 
         async function realizarLogin() {
@@ -176,37 +237,61 @@
             });
             const data = await res.json();
             if(data.sucesso) {
-                localStorage.setItem('chaser_session', JSON.stringify({
-                    nome: data.nome, 
+                const sessao = {
+                    nome: data.usuario?.nome || data.nome, 
                     email: email, 
                     isAdmin: data.status === "CRIADOR_MASTER",
-                    token: data.token
-                }));
+                    token: data.token,
+                    foto: data.usuario?.foto || null
+                };
+                localStorage.setItem('chaser_session', JSON.stringify(sessao));
                 location.reload();
-            } else { alert("Erro no login"); }
+            } else { alert("Dados incorretos"); }
         }
 
+        function telaCadastro() {
+            document.getElementById('painel-content').innerHTML = `
+                <h1>Criar Conta</h1>
+                <input type="text" id="cad-nome" class="auth-input" placeholder="Nome Completo">
+                <input type="email" id="cad-email" class="auth-input" placeholder="E-mail">
+                <input type="password" id="cad-pass" class="auth-input" placeholder="Senha">
+                <button class="btn-auth" onclick="realizarCadastro()">CADASTRAR</button>
+                <button class="btn-auth" style="background:none; color:gray" onclick="abrirPerfil()">VOLTAR</button>
+            `;
+        }
+
+        async function realizarCadastro() {
+            const nome = document.getElementById('cad-nome').value;
+            const email = document.getElementById('cad-email').value;
+            const senha = document.getElementById('cad-pass').value;
+            const res = await fetch('/api/cadastro', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email, senha, nome })
+            });
+            if(res.ok) { alert("Conta criada! Agora faça login."); abrirPerfil(); }
+            else { alert("Erro ao cadastrar."); }
+        }
+
+        // Funções Originais Mantidas
         async function enviarPostagem() {
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             const titulo = document.getElementById('post-titulo').value;
             const conteudo = document.getElementById('post-conteudo').value;
-            if(!titulo || !conteudo) return alert("Preencha tudo!");
-
             const resNews = await fetch('/api/news');
             let news = await resNews.json();
             news.unshift({ id: Date.now(), titulo, conteudo, data: new Date().toLocaleDateString('pt-BR') });
-
             const res = await fetch('/api/dev/github-control', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ token_interno: user.token, arquivo: "news.json", conteudo: news })
             });
-            const data = await res.json();
-            if(data.sucesso) { alert("GITHUB ATUALIZADO!"); location.reload(); }
-            else { alert("ERRO: " + data.erro); }
+            if(res.ok) { alert("PUSH REALIZADO!"); location.reload(); }
         }
 
         function logout() { localStorage.removeItem('chaser_session'); location.reload(); }
+        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
 
         async function renderizarIconesNosMapas() {
             const res = await fetch('/api/alertas');
@@ -214,21 +299,15 @@
             L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
                 L.DomEvent.stopPropagation(ev); abrirPainelAlerta('🔅 INMET BRASIL', data.inmet);
             });
-            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
-                L.DomEvent.stopPropagation(ev); abrirPainelAlerta('☁️ NOAA USA', data.noaa);
-            });
         }
 
         function abrirPainelAlerta(titulo, lista) {
             const painel = document.getElementById('painel-full');
             painel.className = 'alerta-view active';
             let h = `<h1>${titulo}</h1>`;
-            lista.forEach(i => h += `<div class="analise-box"><h3>${i.title || i.properties.event}</h3><p>${i.description || i.properties.headline}</p></div>`);
+            lista.forEach(i => h += `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`);
             document.getElementById('painel-content').innerHTML = h;
         }
-
-        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
-        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
 
         async function buscarLocalizacao() {
             const q = document.getElementById('input-busca').value;
@@ -253,7 +332,7 @@
         window.onload = () => {
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             if(user && user.foto) document.getElementById('user-avatar').style.backgroundImage = `url(${user.foto})`;
-        }
+        };
     </script>
 </body>
 </html>
