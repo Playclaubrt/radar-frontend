@@ -6,12 +6,19 @@ const fs = require('fs');
 const admin = require('firebase-admin'); 
 const app = express();
 
-// --- CONFIGURAÇÃO FIREBASE ---
+// --- CONFIGURAÇÃO FIREBASE (VIA ENVIRONMENT VARIABLE) ---
 try {
-    const serviceAccount = require("./firebase-key.json");
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (serviceAccountVar) {
+        // Converte o texto da variável de volta para objeto JSON
+        const cert = JSON.parse(serviceAccountVar);
+        admin.initializeApp({ credential: admin.credential.cert(cert) });
+        console.log("Firebase Admin inicializado via Variável de Ambiente.");
+    } else {
+        console.error("ERRO: Variável FIREBASE_SERVICE_ACCOUNT não encontrada no Render.");
+    }
 } catch (e) {
-    console.error("AVISO: firebase-key.json não encontrado. Rodando sem Firebase Admin.");
+    console.error("ERRO ao processar credenciais do Firebase:", e.message);
 }
 
 // Limite aumentado para Fotos de Perfil (Base64)
@@ -23,13 +30,14 @@ const MASTER_INTERNAL_TOKEN = "CHASER-ADMIN-SECURE-2026";
 const SEGREDO_URL = "watervalez.falixsrv.me";
 
 // --- PROBLEMA 3: FIREWALL OBRIGATÓRIO ---
-// Garante que apenas o seu domínio e o Render acessem as APIs
 app.use((req, res, next) => {
     const referer = req.headers.referer || "";
-    const isAuthorized = referer.includes(SEGREDO_URL) || referer.includes("render.com");
+    const authHeader = req.headers['x-chaser-key']; // Suporte para acesso de IAs/Máquinas
     
-    // Libera se for autorizado ou se for acesso interno (sem referer do navegador)
-    if (isAuthorized || !referer) {
+    const isAuthorized = referer.includes(SEGREDO_URL) || referer.includes("render.com");
+    const isMachineAuthorized = authHeader === MASTER_INTERNAL_TOKEN;
+
+    if (isAuthorized || isMachineAuthorized || !referer) {
         return next();
     }
     return res.status(403).json({ erro: "ACESSO NEGADO: Use o site oficial para acessar a API." });
@@ -50,7 +58,6 @@ const salvarJSON = (arquivo, obj) => {
 };
 
 // --- PROBLEMA 2: FUNÇÃO DE COMMIT AUTOMÁTICO ---
-// Sincroniza os arquivos de usuários/configurações com o GitHub sempre que mudam
 const commitAoGitHub = async (arquivo, conteudo) => {
     const GH_PAT = process.env.GITHUB_PAT;
     const REPO = "Playclaubrt/radar-frontend";
@@ -59,7 +66,7 @@ const commitAoGitHub = async (arquivo, conteudo) => {
     try {
         const url = `https://api.github.com/repos/${REPO}/contents/${arquivo}`;
         const headers = { Authorization: `token ${GH_PAT}`, Accept: 'application/vnd.github.v3+json' };
-        
+
         let sha = null;
         try {
             const { data } = await axios.get(url, { headers });
@@ -75,7 +82,7 @@ const commitAoGitHub = async (arquivo, conteudo) => {
     } catch (e) { console.error(`Erro ao sincronizar ${arquivo}:`, e.message); }
 };
 
-// --- API CLIMA ---
+// --- API CLIMA (CORRIGIDA PARA INFO GRIDS) ---
 app.get('/api/clima-clique', async (req, res) => {
     const { lat, lon } = req.query;
     if (!lat || !lon) return res.status(400).send();
@@ -86,11 +93,26 @@ app.get('/api/clima-clique', async (req, res) => {
             axios.get(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OWM_KEY}`),
             axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max&hourly=cloud_base,cloud_cover,wind_speed_10m,precipitation&timezone=auto`)
         ]);
-        res.json({ clima: { current: clima.data.main }, geo: geo.data, poluicao: pol.data, extra: meteo.data });
+
+        // Retornamos o objeto 'clima.data' completo para que o front tenha acesso a 'wind' e 'sys'
+        res.json({ 
+            clima: { 
+                current: {
+                    ...clima.data.main,
+                    visibility: clima.data.visibility,
+                    wind: clima.data.wind,
+                    sys: clima.data.sys
+                },
+                wind: clima.data.wind // Garantia para o mapeamento do front
+            }, 
+            geo: geo.data, 
+            poluicao: pol.data, 
+            extra: meteo.data 
+        });
     } catch (e) { res.status(500).json({erro: e.message}); }
 });
 
-// --- PROBLEMA 1: API ALERTAS (CORREÇÃO NOAA) ---
+// --- API ALERTAS (CORREÇÃO NOAA) ---
 app.get('/api/alertas', async (req, res) => {
     try {
         const [resInmet, resNoaa] = await Promise.allSettled([
@@ -112,7 +134,6 @@ app.get('/api/alertas', async (req, res) => {
 
         let noaa = [];
         if (resNoaa.status === 'fulfilled') {
-            // Extrai as propriedades úteis dos alertas da NOAA (GeoJSON)
             noaa = resNoaa.value.data.features.map(f => ({
                 title: f.properties.event,
                 description: f.properties.headline || f.properties.description
@@ -123,22 +144,17 @@ app.get('/api/alertas', async (req, res) => {
     } catch (e) { res.json({ inmet: [], noaa: [] }); }
 });
 
-// --- SISTEMA DE CONTAS COM COMMITS AO GITHUB ---
-
+// --- SISTEMA DE CONTAS ---
 app.post('/api/cadastro', async (req, res) => {
     const { email, senha, nome } = req.body;
-    
     let dbCadastro = lerJSON('cadastro.json', '{}');
     let dbUsers = lerJSON('users.json', '{}');
-
     if (dbCadastro[email]) return res.status(400).json({ erro: "E-mail já cadastrado" });
 
-    // 1. Salva em Cadastro.json
     dbCadastro[email] = { senha, nome, data: new Date() };
     salvarJSON('cadastro.json', dbCadastro);
     await commitAoGitHub('cadastro.json', dbCadastro);
 
-    // 2. Salva em Users.json
     dbUsers[email] = { senha, nome, foto: null };
     salvarJSON('users.json', dbUsers);
     await commitAoGitHub('users.json', dbUsers);
@@ -166,25 +182,18 @@ app.post('/api/login', (req, res) => {
     res.status(401).json({ sucesso: false });
 });
 
-// Edição de perfil com Sincronização
 app.post('/api/config-accounts', async (req, res) => {
     const { email, nome, foto } = req.body;
     let dbConfigs = lerJSON('config-accounts.json', '{}');
-
     if (!dbConfigs[email]) dbConfigs[email] = {};
     if (nome) dbConfigs[email].nome = nome;
     if (foto) dbConfigs[email].foto = foto;
-
     salvarJSON('config-accounts.json', dbConfigs);
-    
-    // PROBLEMA 2: Sincroniza as alterações de perfil com o GitHub
     await commitAoGitHub('config-accounts.json', dbConfigs);
-    
     res.json({ sucesso: true });
 });
 
 // --- NEWS E GITHUB CONTROL ---
-
 app.get('/api/news', (req, res) => res.json(lerJSON('news.json', '[]')));
 
 app.post('/api/news/postar', async (req, res) => {
