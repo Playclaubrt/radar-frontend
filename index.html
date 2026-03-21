@@ -17,11 +17,11 @@
     <div id="container-controles">
         <button id="btn-menu" onclick="toggleMenu()"><div class="bar"></div><div class="bar"></div><div class="bar"></div></button>
         <button id="btn-ativar-alertas" onclick="renderizarIconesNosMapas()">🔅 ALERTAS ☁️</button>
-        <div id="user-avatar" onclick="abrirPerfil()" style="width: 50px; height: 50px; background: #111; border-radius: 50%; border: 2px solid #00ff99; cursor: pointer; background-size: cover; margin-top:10px; background-position: center;"></div>
+        <div id="user-avatar" onclick="abrirPerfil()"></div>
     </div>
 
     <div id="menu-lateral">
-        <button onclick="toggleMenu()" style="color:red; background:none; border:none; font-size:20px;">✕ Fechar</button>
+        <button onclick="toggleMenu()" style="color:red; background:none; border:none; font-size:20px; cursor:pointer;">✕ Fechar</button>
         <div class="cat-title">COMUNIDADE</div>
         <button class="btn-layer" onclick="abrirNews()">📰 News / Avisos</button>
 
@@ -43,9 +43,9 @@
 
     <div id="terminal-criador" style="display:none; position:fixed; bottom:0; left:0; width:100%; background:#000; border-top:3px solid #00ff99; z-index:20000; padding:20px; box-sizing:border-box; box-shadow: 0 -10px 40px rgba(0,255,153,0.3);">
         <h3 style="color:#00ff99; margin:0 0 15px 0; font-family:monospace;">> CHASER_OS_TERMINAL_V3</h3>
-        <input type="text" id="post-titulo" class="auth-input" placeholder="TÍTULO DA NOTÍCIA" autocomplete="off" style="width:100%; margin-bottom:10px;">
-        <textarea id="post-conteudo" class="auth-input" placeholder="CONTEÚDO DA NOTÍCIA..." style="height:100px; background: #080808; color: #00ff99; width: 100%; border: 1px solid #222; border-radius: 8px; padding: 10px; box-sizing: border-box;"></textarea>
-        <button class="btn-auth" onclick="enviarPostagem()" style="width:100%; padding:15px; background:#00ff99; border:none; font-weight:bold; margin-top:10px; border-radius:8px; cursor:pointer; color:black;">EXECUTAR PUSH GITHUB</button>
+        <input type="text" id="post-titulo" class="auth-input" placeholder="TÍTULO DA NOTÍCIA" autocomplete="off">
+        <textarea id="post-conteudo" class="auth-input" placeholder="CONTEÚDO DA NOTÍCIA..." style="height:100px;"></textarea>
+        <button class="btn-auth" onclick="enviarPostagem()" style="background:#00ff99; color:black;">EXECUTAR PUSH GITHUB</button>
         <button onclick="document.getElementById('terminal-criador').style.display='none'" style="background:none; border:none; color:gray; width:100%; margin-top:15px; cursor:pointer;">[ CANCELAR ]</button>
     </div>
 
@@ -58,10 +58,9 @@
         let camadaAtual = 'default';
         let layerAtiva = null;
 
-        // --- SOLUÇÃO PROBLEMA 3: HEADERS DE SEGURANÇA ---
         const getAuthHeaders = () => ({
             'Content-Type': 'application/json',
-            'Referer': 'https://watervalez.falixsrv.me'
+            'x-chaser-key': 'CHASER-ADMIN-SECURE-2026' // Token para bypass se necessário
         });
 
         const getEmoji = (code) => {
@@ -70,10 +69,7 @@
             if(code <= 99) return "⛈️"; return "☁️";
         };
 
-        const getNuvemNome = (code) => {
-            const nomes = {0:"Céu Limpo", 1:"Mainly Clear", 2:"Partly Cloudy", 3:"Overcast", 45:"Fog", 48:"Depositing Rime Fog"};
-            return nomes[code] || "Nuvem Detectada";
-        };
+        const formatSol = (ts) => ts ? new Date(ts * 1000).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : "--:--";
 
         map.on('click', async (e) => {
             if (e.originalEvent.target.classList.contains('map-icon')) return;
@@ -83,42 +79,39 @@
             try {
                 const res = await fetch(`/api/clima-clique?lat=${e.latlng.lat}&lon=${e.latlng.lng}`, { headers: getAuthHeaders() });
                 const d = await res.json();
+                
+                // Mapeamento correto dos dados vindos do server.js
                 const cur = d.clima?.current || {};
+                const wind = cur.wind || {}; 
+                const sys = cur.sys || {};
                 const h = d.extra?.hourly || { precipitation: [0], cloud_base: [0], wind_speed_10m: [0] };
                 const daily = d.extra?.daily || { weathercode: [0], temperature_2m_max: [0] };
 
                 let infoCamada = "";
                 if(camadaAtual === 'tempestades') {
-                    infoCamada = `<div class="analise-box"><h3>⛈️ RADAR</h3><p><b>Tipo:</b> ${cur.temp > 2 ? 'Chuva' : 'Neve'}</p><p><b>mm/s:</b> ${h.precipitation[0] || 0} mm/s</p><p><b>Direção:</b> ${cur.wind_deg || 0}°</p></div>`;
-                } else if(camadaAtual === 'clouds') {
-                    infoCamada = `<div class="analise-box"><h3>☁️ NUVENS TÉCNICAS</h3><p><b>Tipo:</b> ${getNuvemNome(daily.weathercode[0])}</p><p><b>Altura:</b> ${h.cloud_base[0] > 2000 ? 'Alto' : 'Baixo'} (${h.cloud_base[0] || 0}m)</p><p><b>Velocidade:</b> ${h.wind_speed_10m[0] || 0} km/h</p></div>`;
-                } else if(camadaAtual === 'infra') {
-                    infoCamada = `<div class="analise-box"><h3>🌡️ INFRA</h3><p><b>Cor:</b> ${cur.temp > 20 ? 'Quente' : 'Frio'}</p><p><b>Topo:</b> Emissão Térmica</p></div>`;
+                    infoCamada = `<div class="analise-box"><h3>⛈️ RADAR</h3><p><b>Tipo:</b> ${cur.temp > 2 ? 'Chuva' : 'Neve'}</p><p><b>mm/s:</b> ${h.precipitation[0] || 0} mm/s</p></div>`;
                 }
 
+                let htmlDias = "";
                 const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
                 const hoje = new Date();
-                let htmlDias = "";
                 for(let i=0; i<7; i++) {
                     let dIdx = (hoje.getDay() + i) % 7;
                     htmlDias += `<div class="dia-col"><b>${diasSemana[dIdx]}</b>${getEmoji(daily.weathercode[i])}<br><small>${Math.round(daily.temperature_2m_max[i] || 0)}°</small></div>`;
                 }
 
-                const formatSol = (ts) => ts ? new Date(ts * 1000).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : "--:--";
-
                 document.getElementById('painel-content').innerHTML = `
                     <h1>${d.geo?.address?.city || d.geo?.address?.town || "Localização"}</h1>
                     <div class="temp-txt">${Math.round(cur.temp || 0)}°C</div>
-                    <div style="margin-bottom:20px">${getEmoji(daily.weathercode[0])} ${new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'short'})} 👾</div>
                     <div class="clima-grid">
                         <div class="c-item"><b>👁️ Visibilidade</b><br>${(cur.visibility || 0) / 1000}km</div>
                         <div class="c-item"><b>💧 Umidade</b><br>${cur.humidity || 0}%</div>
-                        <div class="c-item"><b>🌬️ Ventos</b><br>${d.clima?.wind?.speed || 0}km/h</div>
+                        <div class="c-item"><b>🌬️ Ventos</b><br>${wind.speed || 0}km/h</div>
                         <div class="c-item"><b>🍃 Qualidade Ar</b><br>${d.poluicao?.list[0]?.main?.aqi || 0} AQI</div>
-                        <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure || 0}hPa</div>
+                        <div class="c-item"><b>🌅 Nascer do Sol</b><br>${formatSol(sys.sunrise)}</div>
+                        <div class="c-item"><b>🌇 Pôr do Sol</b><br>${formatSol(sys.sunset)}</div>
                         <div class="c-item"><b>🌡️ Sensação</b><br>${Math.round(cur.feels_like || 0)}°C</div>
-                        <div class="c-item"><b>🌅 Nascer do Sol</b><br>${formatSol(cur.sunrise)}</div>
-                        <div class="c-item"><b>🌇 Pôr do Sol</b><br>${formatSol(cur.sunset)}</div>
+                        <div class="c-item"><b>⏲️ Pressão</b><br>${cur.pressure || 0}hPa</div>
                     </div>
                     <div class="quadrado-dias">${htmlDias}</div>
                     ${infoCamada}
@@ -126,6 +119,7 @@
             } catch(e) { console.error(e); }
         });
 
+        // Funções de Interface (News, Perfil, Cadastro)
         async function abrirNews() {
             toggleMenu();
             const painel = document.getElementById('painel-full');
@@ -133,7 +127,7 @@
             const res = await fetch('/api/news', { headers: getAuthHeaders() });
             const data = await res.json();
             let h = "<h1>📰 CHASER NEWS</h1>";
-            data.forEach(n => h += `<div class="news-item" style="background:#111; padding:15px; margin:10px 0; border-left:4px solid #00ff99; text-align:left;"><small>${n.data}</small><h3>${n.titulo}</h3><p>${n.conteudo}</p></div>`);
+            data.forEach(n => h += `<div class="news-item"><h3>${n.titulo}</h3><p>${n.conteudo}</p><small>${n.data}</small></div>`);
             document.getElementById('painel-content').innerHTML = h;
         }
 
@@ -141,185 +135,57 @@
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             const painel = document.getElementById('painel-full');
             painel.className = 'auth-view active';
-
             if(!user) {
-                document.getElementById('painel-content').innerHTML = `
-                    <h1>Acessar Conta</h1>
-                    <input type="email" id="log-email" class="auth-input" placeholder="E-mail">
-                    <input type="password" id="log-pass" class="auth-input" placeholder="Senha">
-                    <button class="btn-auth" onclick="realizarLogin()">ENTRAR</button>
-                    <button class="btn-auth" style="background:#333; color:white;" onclick="telaCadastro()">CRIAR CONTA</button>
-                `;
+                document.getElementById('painel-content').innerHTML = `<h1>Acesso</h1><input type="email" id="log-email" class="auth-input" placeholder="E-mail"><input type="password" id="log-pass" class="auth-input" placeholder="Senha"><button class="btn-auth" onclick="realizarLogin()">ENTRAR</button><button class="btn-auth" style="background:#333; color:white;" onclick="telaCadastro()">CRIAR CONTA</button>`;
             } else {
                 let devBtn = user.isAdmin ? `<button class="btn-auth" style="background:#00ff99; color:black" onclick="acessarDev()">DEVELOPER MODE</button>` : "";
-                document.getElementById('painel-content').innerHTML = `
-                    <div id="perfil-header">
-                        <div id="foto-preview-perfil" style="width:100px; height:100px; border-radius:50%; border:3px solid #00ff99; margin:0 auto 20px; background-image:url('${user.foto || ''}'); background-size:cover; background-position:center; background-color:#111;"></div>
-                        <h1>${user.nome}</h1>
-                        <p style="color:#00ff99">${user.isAdmin ? 'CRIADOR MASTER' : 'CHASER MEMBER'}</p>
-                    </div>
-                    <div class="tabela-opcoes">
-                        <button class="btn-auth" style="background:#222; color:white" onclick="telaEditarPerfil()">EDITAR PERFIL</button>
-                        ${devBtn}
-                        <button class="btn-auth" style="background:#ff4444; color:white" onclick="logout()">LOG-OUT</button>
-                    </div>
-                `;
+                document.getElementById('painel-content').innerHTML = `<h1>${user.nome}</h1><p>${user.isAdmin ? 'MASTER' : 'MEMBER'}</p>${devBtn}<button class="btn-auth" style="background:#ff4444; color:white" onclick="logout()">LOGOUT</button>`;
             }
-        }
-
-        function telaEditarPerfil() {
-            const user = JSON.parse(localStorage.getItem('chaser_session'));
-            document.getElementById('painel-content').innerHTML = `
-                <h1>Editar Perfil</h1>
-                <div id="drop-zone" ondragover="event.preventDefault()" onclick="document.getElementById('file-input').click()">
-                    <p>Puxe e Solte sua Foto aqui</p>
-                    <small>PNG, JPG</small>
-                    <input type="file" id="file-input" style="display:none" accept="image/*" onchange="handleFileUpload(this.files[0])">
-                </div>
-                <input type="text" id="edit-nome" class="auth-input" value="${user.nome}" placeholder="Novo Nome">
-                <button class="btn-auth" onclick="salvarAlteracoes()">SALVAR ALTERAÇÕES</button>
-                <button class="btn-auth" style="background:none; color:gray" onclick="abrirPerfil()">CANCELAR</button>
-            `;
-            const dz = document.getElementById('drop-zone');
-            dz.addEventListener('drop', (e) => { e.preventDefault(); handleFileUpload(e.dataTransfer.files[0]); });
-        }
-
-        function handleFileUpload(file) {
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const base64 = e.target.result;
-                document.getElementById('drop-zone').style.backgroundImage = `url(${base64})`;
-                document.getElementById('drop-zone').style.backgroundSize = "cover";
-                window.temp_base64 = base64;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        async function salvarAlteracoes() {
-            const user = JSON.parse(localStorage.getItem('chaser_session'));
-            const novoNome = document.getElementById('edit-nome').value;
-            const novaFoto = window.temp_base64 || user.foto;
-
-            const res = await fetch('/api/config-accounts', {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ email: user.email, nome: novoNome, foto: novaFoto })
-            });
-
-            if(res.ok) {
-                user.nome = novoNome;
-                user.foto = novaFoto;
-                localStorage.setItem('chaser_session', JSON.stringify(user));
-                alert("Perfil Atualizado no Servidor e GitHub!");
-                location.reload();
-            }
-        }
-
-        function acessarDev() {
-            let senha = prompt("ACESSO RESTRITO. DIGITE A SENHA DO TERMINAL:");
-            if(senha === "abrir.terminal") {
-                document.getElementById('terminal-criador').style.display = 'block';
-                fecharPainel();
-            } else { alert("ACESSO NEGADO."); }
         }
 
         async function realizarLogin() {
             const email = document.getElementById('log-email').value;
             const senha = document.getElementById('log-pass').value;
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ email, senha })
-            });
+            const res = await fetch('/api/login', { method:'POST', headers: getAuthHeaders(), body: JSON.stringify({email, senha}) });
             const data = await res.json();
             if(data.sucesso) {
-                const sessao = {
-                    nome: data.usuario?.nome || data.nome, 
-                    email: email, 
-                    isAdmin: data.status === "CRIADOR_MASTER",
-                    token: data.token,
-                    foto: data.usuario?.foto || null
-                };
+                const sessao = { nome: data.usuario?.nome || data.nome, email, isAdmin: data.status === "CRIADOR_MASTER", token: data.token, foto: data.usuario?.foto };
                 localStorage.setItem('chaser_session', JSON.stringify(sessao));
                 location.reload();
-            } else { alert("Dados incorretos"); }
+            } else { alert("Erro no login"); }
         }
 
-        function telaCadastro() {
-            document.getElementById('painel-content').innerHTML = `
-                <h1>Criar Conta</h1>
-                <input type="text" id="cad-nome" class="auth-input" placeholder="Nome Completo">
-                <input type="email" id="cad-email" class="auth-input" placeholder="E-mail">
-                <input type="password" id="cad-pass" class="auth-input" placeholder="Senha">
-                <button class="btn-auth" onclick="realizarCadastro()">CADASTRAR</button>
-                <button class="btn-auth" style="background:none; color:gray" onclick="abrirPerfil()">VOLTAR</button>
-            `;
-        }
-
-        async function realizarCadastro() {
-            const nome = document.getElementById('cad-nome').value;
-            const email = document.getElementById('cad-email').value;
-            const senha = document.getElementById('cad-pass').value;
-            const res = await fetch('/api/cadastro', {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ email, senha, nome })
-            });
-            if(res.ok) { alert("Conta sincronizada com GitHub! Faça login."); abrirPerfil(); }
-            else { alert("Erro ao cadastrar."); }
+        function acessarDev() {
+            if(prompt("SENHA DO TERMINAL:") === "abrir.terminal") {
+                document.getElementById('terminal-criador').style.display = 'block';
+                fecharPainel();
+            }
         }
 
         async function enviarPostagem() {
             const user = JSON.parse(localStorage.getItem('chaser_session'));
             const titulo = document.getElementById('post-titulo').value;
             const conteudo = document.getElementById('post-conteudo').value;
-            const resNews = await fetch('/api/news', { headers: getAuthHeaders() });
-            let news = await resNews.json();
-            news.unshift({ id: Date.now(), titulo, conteudo, data: new Date().toLocaleDateString('pt-BR') });
-            const res = await fetch('/api/dev/github-control', {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ token_interno: user.token, arquivo: "news.json", conteudo: news })
+            const res = await fetch('/api/news/postar', { 
+                method:'POST', headers: getAuthHeaders(), 
+                body: JSON.stringify({ token: user.token, titulo, conteudo }) 
             });
-            if(res.ok) { alert("PUSH REALIZADO!"); location.reload(); }
+            if(res.ok) { alert("Notícia enviada!"); location.reload(); }
         }
-
-        function logout() { localStorage.removeItem('chaser_session'); location.reload(); }
-        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
-        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
 
         async function renderizarIconesNosMapas() {
             const res = await fetch('/api/alertas', { headers: getAuthHeaders() });
             const data = await res.json();
-            
-            // --- SOLUÇÃO PROBLEMA 1: NOAA INTEGRADO ---
-            // Ícone INMET
-            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
-                L.DomEvent.stopPropagation(ev); abrirPainelAlerta('🔅 INMET BRASIL', data.inmet);
-            });
-
-            // Ícone NOAA (Localizado em Washington para representar os EUA)
-            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', (ev) => {
-                L.DomEvent.stopPropagation(ev); 
-                abrirPainelAlerta('☁️ NOAA ALERTAS USA', data.noaa);
-            });
+            L.marker([-15.79, -47.88], { icon: L.divIcon({html:'🔅', className:'map-icon'}) }).addTo(map).on('click', () => abrirPainelAlerta('INMET BRASIL', data.inmet));
+            L.marker([38.89, -77.03], { icon: L.divIcon({html:'☁️', className:'map-icon'}) }).addTo(map).on('click', () => abrirPainelAlerta('NOAA USA', data.noaa));
         }
 
         function abrirPainelAlerta(titulo, lista) {
             const painel = document.getElementById('painel-full');
             painel.className = 'alerta-view active';
             let h = `<h1>${titulo}</h1>`;
-            if(!lista || lista.length === 0) h += "<p>Sem alertas ativos no momento.</p>";
-            else lista.forEach(i => h += `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`);
-            document.getElementById('painel-content').innerHTML = h;
-        }
-
-        async function buscarLocalizacao() {
-            const q = document.getElementById('input-busca').value;
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
-            const data = await res.json();
-            if(data[0]) map.setView([data[0].lat, data[0].lon], 11);
+            lista.forEach(i => h += `<div class="analise-box"><h3>${i.title}</h3><p>${i.description}</p></div>`);
+            document.getElementById('painel-content').innerHTML = h || "<p>Sem alertas.</p>";
         }
 
         function aplicarCamada(tipo) {
@@ -333,6 +199,16 @@
             if(tipo === 'satelite_base') url = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'; 
             if(url) layerAtiva = L.tileLayer(url, { opacity: 0.8, zIndex: 100 }).addTo(map);
             toggleMenu();
+        }
+
+        function toggleMenu() { document.getElementById('menu-lateral').classList.toggle('active'); }
+        function fecharPainel() { document.getElementById('painel-full').classList.remove('active'); }
+        function logout() { localStorage.removeItem('chaser_session'); location.reload(); }
+        async function buscarLocalizacao() {
+            const q = document.getElementById('input-busca').value;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+            const data = await res.json();
+            if(data[0]) map.setView([data[0].lat, data[0].lon], 11);
         }
 
         window.onload = () => {
